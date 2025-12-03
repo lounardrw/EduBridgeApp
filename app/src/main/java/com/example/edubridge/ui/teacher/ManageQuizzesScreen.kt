@@ -1,4 +1,20 @@
 package com.example.edubridge.ui.teacher
 
-class ManageQuizzesScreen {
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.material3.Text
+import androidx.compose.runtime.Composable
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+
+@Composable
+fun ManageQuizzesScreen() {
+    // TODO: Implementar UI para crear y gestionar cuestionarios por grado (CRUD)
+    Box(
+        modifier = Modifier.fillMaxSize(),
+        contentAlignment = Alignment.Center
+    ) {
+        Text(text = "Gestión de Aulas (Quizzes)")
+    }
 }
+    
