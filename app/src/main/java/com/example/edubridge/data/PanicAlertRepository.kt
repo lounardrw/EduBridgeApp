@@ -9,7 +9,6 @@ data class PanicAlert(
     val location: LatLng,
     val timestamp: Long = System.currentTimeMillis()
 )
-
 object PanicAlertRepository {
     private val _activeAlert = MutableStateFlow<PanicAlert?>(null)
     val activeAlert = _activeAlert.asStateFlow()

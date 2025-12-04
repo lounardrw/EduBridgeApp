@@ -8,7 +8,6 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
-
 @Composable
 fun LoginScreen(
     onStudentLogin: () -> Unit,
@@ -19,6 +18,7 @@ fun LoginScreen(
         verticalArrangement = Arrangement.Center,
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
+
         Text("EduBridge", style = MaterialTheme.typography.headlineLarge)
         Spacer(modifier = Modifier.height(32.dp))
         Button(onClick = onStudentLogin) {
@@ -30,4 +30,3 @@ fun LoginScreen(
         }
     }
 }
-    
