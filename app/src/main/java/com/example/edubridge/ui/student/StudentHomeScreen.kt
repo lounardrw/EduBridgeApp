@@ -13,94 +13,129 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
-import com.example.edubridge.data.PanicAlertRepository
-import com.google.android.gms.location.LocationServices
+import androidx.navigation.NavController // Para manejar la navegación entre pantallas.
+import com.example.edubridge.data.PanicAlertRepository // Lógica para enviar alertas de pánico.
+import com.google.android.gms.location.LocationServices // Para obtener la ubicación GPS.
 import com.google.android.gms.maps.model.LatLng
-import kotlinx.coroutines.launch
+import kotlinx.coroutines.launch // Para tareas asíncronas (ej. abrir el menú).
 
-// DEFINICIONES DE PANTALLAS
+// IMPORTACIÓN DE PANTALLAS
+import com.example.edubridge.ui.student.ClassroomsScreen // Pantalla de Aulas (la única que tiene la lógica de navegación).
+
+// DEFINICIONES DE PANTALLAS Y ESTRUCTURAS
+// Define cada ítem que aparecerá en la barra de navegación inferior.
 data class NavItem(val label: String, val icon: ImageVector, val screen: Screen)
 
+// Define las "rutas" internas de la pantalla principal (las pestañas).
 sealed class Screen(val route: String) {
     object Library : Screen("library")
     object Events : Screen("events")
     object Classrooms : Screen("classrooms")
 }
 
-// Stubs (Implementación Provisional/Simulada)
-@Composable fun LibraryScreen(modifier: Modifier = Modifier) { Text("Biblioteca Digital (Isaac)", modifier) }
-@Composable fun EventsScreen(modifier: Modifier = Modifier) { Text("Eventos y Avisos (Montse)", modifier) }
-@Composable fun ClassroomsScreen(modifier: Modifier = Modifier) { Text("Aulas Interactivas (Cuenca)", modifier) }
+// Stubs TEMPORALES y LOCALES
+// Se usan hasta que los compañeros implementen las funciones Composable reales.
+@Composable
+fun EventsScreen(modifier: Modifier = Modifier) {
+    Box(modifier = modifier.fillMaxSize().padding(16.dp), contentAlignment = Alignment.Center) {
+        Text("Eventos y Avisos (Montse) - STUB LOCAL", style = MaterialTheme.typography.titleLarge)
+    }
+}
+
+@Composable
+fun LibraryScreen(modifier: Modifier = Modifier) {
+    Box(modifier = modifier.fillMaxSize().padding(16.dp), contentAlignment = Alignment.Center) {
+        Text("Biblioteca Digital (Isaac) - STUB LOCAL", style = MaterialTheme.typography.titleLarge)
+    }
+}
 
 // PANTALLA PRINCIPAL DEL ALUMNO (Home)
-
+@Composable
+fun StudentHomeScreen() {
+    // Llama a la implementación principal, usando valores por defecto.
+    StudentHomeScreen(email = "temporal@edubridge.com", navController = null)
+}
+@Composable
+fun StudentHomeScreen(navController: NavController) {
+    // Llama a la implementación principal, pasando el NavController real.
+    StudentHomeScreen(email = "temporal@edubridge.com", navController = navController)
+}
 @OptIn(ExperimentalMaterial3Api::class)
 @SuppressLint("MissingPermission")
 @Composable
-// MODIFICACIÓN PRINCIPAL: Acepta el email como parámetro
-fun StudentHomeScreen(email: String) {
-    val context = LocalContext.current
+// Implementación principal de la pantalla del alumno.
+fun StudentHomeScreen(email: String, navController: NavController?) {
+    val context = LocalContext.current // Acceso al contexto de Android.
     val fusedLocationClient = remember { LocationServices.getFusedLocationProviderClient(context) }
-    val scope = rememberCoroutineScope()
+    val scope = rememberCoroutineScope() // Se usa para lanzar tareas asíncronas (ej. abrir el menú).
 
-    //Estados para los Menús Laterales y Fichas
-    val profileDrawerState = rememberDrawerState(initialValue = DrawerValue.Closed) // Menú Izquierdo (Perfil)
-    var showSettingsSheet by remember { mutableStateOf(false) } // Menú Derecho (Configuración/Fichas)
+    // Bandera para saber si podemos navegar (si NavController no es nulo).
+    val isNavAvailable = navController != null
 
+    // Estados de la UI
+    val profileDrawerState = rememberDrawerState(initialValue = DrawerValue.Closed) // Menú lateral (Perfil).
+    var showSettingsSheet by remember { mutableStateOf(false) } // Panel de ajustes inferior.
+
+    // Definición de la barra de navegación inferior.
     val navigationItems = listOf(
         NavItem(label = "Biblioteca", icon = Icons.Default.MenuBook, screen = Screen.Library),
         NavItem(label = "Eventos", icon = Icons.Default.Event, screen = Screen.Events),
         NavItem(label = "Aulas", icon = Icons.Default.School, screen = Screen.Classrooms)
     )
-    var currentScreen: Screen by remember { mutableStateOf<Screen>(Screen.Library) }
+    var currentScreen: Screen by remember { mutableStateOf<Screen>(Screen.Library) } // Pestaña activa.
 
 
-    //Launcher (Mecanismo para solicitar Permisos) para solicitar GPS
+    // Mecanismo para solicitar permisos de GPS.
     val locationPermissionLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.RequestMultiplePermissions()
     ) { permissions ->
         if (permissions.getOrDefault(Manifest.permission.ACCESS_FINE_LOCATION, false)) {
-            // Permiso otorgado
+            // Permiso OK: Intentar obtener la ubicación.
             fusedLocationClient.lastLocation.addOnSuccessListener { location ->
                 if (location != null) {
-                    val latLng = LatLng(location.latitude, location.longitude) // LatLng (Latitud y Longitud GPS)
+                    val latLng = LatLng(location.latitude, location.longitude)
                     Log.d("PanicButton", "Ubicación obtenida: $latLng")
-                    PanicAlertRepository.triggerAlert("Alumno de Prueba", latLng)
+                    // Envía la alerta al repositorio (y de ahí al servidor Node.js).
+                    PanicAlertRepository.triggerAlert(email, latLng)
                     Toast.makeText(context, "¡Alerta enviada!", Toast.LENGTH_SHORT).show()
                 } else {
                     Toast.makeText(context, "No se pudo obtener la ubicación.", Toast.LENGTH_SHORT).show()
                 }
             }
         } else {
-            // Permiso denegado
+            // Permiso denegado.
             Toast.makeText(context, "El permiso de ubicación es necesario para el botón de pánico.", Toast.LENGTH_LONG).show()
         }
     }
 
-    // INICIO DEL CONTENEDOR LATERAL IZQUIERDO (PERFIL) (ModalNavigationDrawer)
+    // CONTENEDOR PRINCIPAL: Implementa el menú lateral izquierdo (Perfil).
     ModalNavigationDrawer(
-        //Pasa el email al contenido del Drawer
         drawerContent = { StudentProfileDrawerContent(profileDrawerState, email = email) },
         drawerState = profileDrawerState,
-        gesturesEnabled = profileDrawerState.isOpen
+        gesturesEnabled = true
     ) {
-        // CUERPO PRINCIPAL (SCAFFOLD - Estructura de Diseño Principal)
+        // SCAFFOLD: Estructura base de la aplicación.
         Scaffold(
             topBar = {
                 TopAppBar(
                     title = { Text("Portal del Alumno") },
-                    //Icono izquierdo para abrir el Perfil
+                    // Botón para abrir el Menú de Perfil.
                     navigationIcon = {
                         IconButton(onClick = { scope.launch { profileDrawerState.open() } }) {
                             Icon(Icons.Default.Person, contentDescription = "Menú Perfil")
                         }
                     },
                     actions = {
-                        //Icono derecho para abrir la Ficha de Configuración
+                        // Botón de IA (Asistente) - Tarea de Karen.
+                        IconButton(onClick = { /* TODO: Lógica para abrir el chat de IA */ }) {
+                            Icon(Icons.Default.SmartToy, contentDescription = "Asistente IA")
+                        }
+                        // Botón de Ajustes (abre el panel flotante inferior).
                         IconButton(onClick = { showSettingsSheet = true }) {
                             Icon(Icons.Default.Settings, contentDescription = "Menú Ajustes")
                         }
@@ -108,7 +143,7 @@ fun StudentHomeScreen(email: String) {
                 )
             },
             bottomBar = {
-                //Implementación de la Navegación Inferior
+                // Barra de Navegación Inferior (pestañas).
                 NavigationBar {
                     navigationItems.forEach { item ->
                         NavigationBarItem(
@@ -121,77 +156,106 @@ fun StudentHomeScreen(email: String) {
                 }
             },
             floatingActionButton = {
-                //Botón de Pánico (FAB - Floating Action Button)
+                // BOTÓN DE PÁNICO (FAB): Grande, rojo y visible para acción crítica.
                 FloatingActionButton(
                     onClick = {
                         locationPermissionLauncher.launch(
-                            arrayOf(
-                                Manifest.permission.ACCESS_FINE_LOCATION,
-                                Manifest.permission.ACCESS_COARSE_LOCATION
-                            )
+                            arrayOf(Manifest.permission.ACCESS_FINE_LOCATION, Manifest.permission.ACCESS_COARSE_LOCATION)
                         )
                     },
-                    containerColor = MaterialTheme.colorScheme.error
+                    containerColor = MaterialTheme.colorScheme.error,
+                    modifier = Modifier.size(72.dp).padding(8.dp),
+                    shape = MaterialTheme.shapes.extraLarge
                 ) {
-                    Icon(Icons.Default.Warning, contentDescription = "Botón de Pánico")
+                    Icon(Icons.Default.Warning, contentDescription = "Botón de Pánico", modifier = Modifier.size(40.dp))
                 }
             }
         ) { innerPadding ->
-            // Contenido principal que cambia según la pantalla seleccionada
+            // CONTENIDO CENTRAL: Muestra la pantalla seleccionada (Tab Content).
             val modifier = Modifier.padding(innerPadding)
             when (currentScreen) {
                 is Screen.Library -> LibraryScreen(modifier = modifier)
                 is Screen.Events -> EventsScreen(modifier = modifier)
-                is Screen.Classrooms -> ClassroomsScreen(modifier = modifier)
+                // Llama a la pantalla Aulas si la navegación está disponible.
+                is Screen.Classrooms -> if (isNavAvailable) {
+                    ClassroomsScreen(
+                        modifier = modifier,
+                        navController = navController!! // Uso seguro de NavController
+                    )
+                } else {
+                    // Muestra un mensaje de error si la navegación falla (caso de prueba/error).
+                    Box(modifier = modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                        Text("Aulas: Navegación no disponible", color = MaterialTheme.colorScheme.error)
+                    }
+                }
             }
         }
     } // FIN ModalNavigationDrawer
 
-    //Ficha Modal (ModalBottomSheet - Panel Flotante Inferior) para el Menú Derecho
+    // PANEL FLOTANTE INFERIOR: Menú de Ajustes.
     if (showSettingsSheet) {
         SettingsModalSheet(onDismiss = { showSettingsSheet = false })
     }
 }
 
-
-// ------------------------------------------------------------------
-// COMPOSABLES AUXILIARES DE KAREN (Avance)
-// ------------------------------------------------------------------
-
+// COMPOSABLES AUXILIARES (adelanto)
+// Contenido del menú lateral (Drawer) de perfil.
 @Composable
-// MODIFICACIÓN CLAVE: Acepta el email como parámetro
 fun StudentProfileDrawerContent(drawerState: DrawerState, email: String) {
-    // KAREN: Contenido del Menú Izquierdo (Perfil)
-    val scope = rememberCoroutineScope()
-    Column(modifier = Modifier.padding(16.dp)) {
-        Text("Perfil del Alumno", style = MaterialTheme.typography.headlineSmall)
-        // Muestra el email real pasado desde el Login
-        Text("Correo: $email", style = MaterialTheme.typography.bodyLarge)
+    val scope = rememberCoroutineScope() // Scope para cerrar el menú asíncronamente.
 
-        // MODIFICACIÓN DE KAREN: Botón para editar perfil (cumple con el requisito de "Actualizar Perfil")
-        Button(onClick = {
-            scope.launch { drawerState.close() }
-            // Lógica para abrir el diálogo de cambio de contraseña
-        }) {
-            Text("Actualizar Contraseña (Demo)")
+    ModalDrawerSheet(
+        modifier = Modifier.width(IntrinsicSize.Max)
+    ) {
+        Column(
+            modifier = Modifier.fillMaxWidth().padding(24.dp),
+            horizontalAlignment = Alignment.CenterHorizontally
+        ) {
+            Text("Perfil del Alumno", style = MaterialTheme.typography.headlineMedium)
+            Spacer(modifier = Modifier.height(16.dp))
+
+            // Muestra la información del usuario (Email).
+            Text("Correo:", style = MaterialTheme.typography.bodyLarge, color = MaterialTheme.colorScheme.onSurfaceVariant)
+            Text(email, style = MaterialTheme.typography.titleMedium, color = MaterialTheme.colorScheme.primary)
+
+            Spacer(modifier = Modifier.height(24.dp))
+
+            Button(
+                onClick = { scope.launch { drawerState.close() } }, // Cierra el menú.
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Text("Actualizar Contraseña (Demo)")
+            }
+
+            HorizontalDivider(Modifier.padding(vertical = 16.dp)) // Línea separadora.
+
+            Text(
+                "Promedio: N/A",
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.secondary
+            )
         }
-        Divider(Modifier.padding(vertical = 8.dp))
-        Text("Promedio: N/A", style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.primary)
     }
 }
 
+// Panel inferior de ajustes (ModalBottomSheet).
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun SettingsModalSheet(onDismiss: () -> Unit) {
-    // KAREN: Fichas Informativas para el Menú Derecho (Cumple con el requisito de "ventanas emergentes")
     ModalBottomSheet(onDismissRequest = onDismiss) {
         LazyColumn(
             modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp),
             verticalArrangement = Arrangement.spacedBy(12.dp)
         ) {
-            item { Text("Opciones y Fichas", style = MaterialTheme.typography.titleLarge, modifier = Modifier.padding(bottom = 8.dp)) }
+            item {
+                Text(
+                    "Opciones y Fichas",
+                    style = MaterialTheme.typography.titleLarge,
+                    modifier = Modifier.padding(bottom = 8.dp).fillMaxWidth(),
+                    textAlign = androidx.compose.ui.text.style.TextAlign.Center
+                )
+            }
 
-            // Simulación de Fichas (Términos, Privacidad, Contacto)
             item { SettingItem(title = "Términos de Uso", description = "Reglas y Acuerdos Legales.") }
             item { SettingItem(title = "Aviso de Privacidad", description = "Tratamiento y uso exclusivo de datos de ubicación.") }
             item { SettingItem(title = "Contacto", description = "Teléfonos y horarios escolares.") }
@@ -207,9 +271,10 @@ fun SettingsModalSheet(onDismiss: () -> Unit) {
     }
 }
 
+// Tarjeta reutilizable para los ítems de ajuste.
 @Composable
 fun SettingItem(title: String, description: String) {
-    Card(Modifier.fillMaxWidth().clickable { /* Clic para abrir el contenido */ }) {
+    Card(Modifier.fillMaxWidth().clickable { /* Lógica de clic */ }) {
         Column(Modifier.padding(16.dp)) {
             Text(title, style = MaterialTheme.typography.titleMedium)
             Text(description, style = MaterialTheme.typography.bodySmall)
