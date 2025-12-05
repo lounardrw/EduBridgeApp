@@ -5,6 +5,8 @@
     <!-- Permisos para obtener la ubicación -->
     <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />
     <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" />
+    <!-- Permiso DE INTERNEEEEEET-->
+    <uses-permission android:name="android.permission.INTERNET" />
 
     <application
         android:allowBackup="true"
@@ -14,7 +16,10 @@
         android:label="@string/app_name"
         android:roundIcon="@mipmap/ic_launcher_round"
         android:supportsRtl="true"
-        android:theme="@style/Theme.EduBridge">
+        android:theme="@style/Theme.EduBridge"
+        android:name=".EduBridgeApp"
+        android:usesCleartextTraffic="true"
+        >
 
         <meta-data
             android:name="com.google.android.geo.API_KEY"
