@@ -7,7 +7,7 @@ plugins {
 
 android {
     namespace = "com.example.edubridge"
-    compileSdk = 36
+    compileSdk = 36 // Versión avanzada
 
     defaultConfig {
         applicationId = "com.example.edubridge"
@@ -15,7 +15,6 @@ android {
         targetSdk = 36
         versionCode = 1
         versionName = "1.0"
-
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
 
@@ -41,12 +40,17 @@ android {
 }
 
 dependencies {
+    // Mapas
     implementation("com.google.maps.android:maps-compose:6.0.0")
     implementation("com.google.android.gms:play-services-maps:19.0.0")
     implementation("com.google.android.gms:play-services-location:21.3.0")
     implementation("androidx.compose.material:material-icons-extended-android:1.6.8")
-    implementation("androidx.navigation:navigation-compose:2.8.0-beta05")
 
+    // Navegación
+    implementation("androidx.navigation:navigation-compose:2.8.0-beta01")
+
+    // Core Compose
+    implementation(libs.androidx.core.ktx)
     implementation(libs.androidx.lifecycle.runtime.ktx)
     implementation(libs.androidx.activity.compose)
     implementation(platform(libs.androidx.compose.bom))
