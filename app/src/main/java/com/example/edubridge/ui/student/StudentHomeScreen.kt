@@ -72,12 +72,16 @@ fun StudentHomeScreen(email: String) {
                     PanicAlertRepository.triggerAlert("Alumno de Prueba", latLng)
                     Toast.makeText(context, "¡Alerta enviada!", Toast.LENGTH_SHORT).show()
                 } else {
-                    Toast.makeText(context, "No se pudo obtener la ubicación.", Toast.LENGTH_SHORT).show()
+                    Toast.makeText(context, "No se pudo obtener la ubicación.", Toast.LENGTH_SHORT)
+                        .show()
                 }
             }
         } else {
-            // Permiso denegado
-            Toast.makeText(context, "El permiso de ubicación es necesario para el botón de pánico.", Toast.LENGTH_LONG).show()
+            Toast.makeText(
+                context,
+                "El permiso de ubicación es necesario para el botón de pánico.",
+                Toast.LENGTH_LONG
+            ).show()
         }
     }
 
