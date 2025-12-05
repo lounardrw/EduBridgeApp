@@ -8,9 +8,11 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
+import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
+import androidx.navigation.navArgument
 import com.example.edubridge.ui.auth.LoginScreen
 import com.example.edubridge.ui.student.StudentHomeScreen
 import com.example.edubridge.ui.teacher.*
@@ -18,14 +20,17 @@ import com.example.edubridge.ui.teacher.*
 // Objeto para mantener las rutas centralizadas
 object Destinations {
     const val LOGIN_ROUTE = "login"
-    const val STUDENT_HOME_ROUTE = "student_home"
+    // 1. MODIFICAMOS LA RUTA DEL ALUMNO PARA ACEPTAR UN ARGUMENTO
+    const val STUDENT_HOME_ROUTE = "student_home/{email}"
     const val TEACHER_DASHBOARD_ROUTE = "teacher_dashboard"
 
-    // Nuevas rutas para la gestión del profesor
     const val MANAGE_LIBRARY_ROUTE = "manage_library"
     const val MANAGE_EVENTS_ROUTE = "manage_events"
     const val MANAGE_QUIZZES_ROUTE = "manage_quizzes"
     const val ALERT_MAP_ROUTE = "alert_map"
+
+    // 2. FUNCIÓN DE AYUDA PARA CONSTRUIR LA RUTA FÁCILMENTE
+    fun studentHomeWithEmail(email: String) = "student_home/$email"
 }
 
 class MainActivity : ComponentActivity() {
@@ -55,8 +60,8 @@ fun AppNavigation() {
         // --- Pantalla de Inicio de Sesión ---
         composable(Destinations.LOGIN_ROUTE) {
             LoginScreen(
-                onStudentLogin = {
-                    navController.navigate(Destinations.STUDENT_HOME_ROUTE) {
+                // 3. LA FIRMA DE onStudentLogin AHORA RECIBE EL EMAIL
+                onStudentLogin = { email -> navController.navigate(Destinations.studentHomeWithEmail(email)) {
                         popUpTo(Destinations.LOGIN_ROUTE) { inclusive = true }
                     }
                 },
@@ -69,9 +74,23 @@ fun AppNavigation() {
         }
 
         // --- Pantalla Principal del Alumno ---
-        composable(Destinations.STUDENT_HOME_ROUTE) {
-            StudentHomeScreen()
+        // 4. DEFINIMOS EL ARGUMENTO Y SE LO PASAMOS A LA PANTALLA
+        composable(
+            route = Destinations.STUDENT_HOME_ROUTE,
+            arguments = listOf(navArgument("email") { type = NavType.StringType })
+        ) { backStackEntry ->
+            // Extraemos el email de los argumentos de la ruta
+            val email = backStackEntry.arguments?.getString("email")
+
+            if (email != null) {
+                // Se lo pasamos a la pantalla del alumno
+                StudentHomeScreen(email = email)
+            } else {
+                // Si por alguna razón el email es nulo, volvemos al login para evitar un crash
+                navController.popBackStack(Destinations.LOGIN_ROUTE, inclusive = false)
+            }
         }
+
 
         // --- Panel de Control del Profesor ---
         composable(Destinations.TEACHER_DASHBOARD_ROUTE) {
@@ -87,10 +106,12 @@ fun AppNavigation() {
             ManageLibraryScreen()
         }
         composable(Destinations.MANAGE_EVENTS_ROUTE) {
-            ManageEventsScreen()
+            // Suponiendo que tienes una pantalla para esto
+            // ManageEventsScreen()
         }
         composable(Destinations.MANAGE_QUIZZES_ROUTE) {
-            ManageQuizzesScreen()
+            // Suponiendo que tienes una pantalla para esto
+            // ManageQuizzesScreen()
         }
         composable(Destinations.ALERT_MAP_ROUTE) {
             AlertMapScreen(
