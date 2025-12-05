@@ -6,6 +6,7 @@ data class Resource(
     val author: String,
     val fileUrl: String,
 
+    //Esta es una prueba
     val isDownloaded: Boolean = false,
     val localFilePath: String? = null
 )

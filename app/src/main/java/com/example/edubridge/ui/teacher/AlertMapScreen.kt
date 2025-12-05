@@ -1,65 +1,102 @@
 package com.example.edubridge.ui.teacher
 
 import android.annotation.SuppressLint
-import androidx.compose.foundation.layout.*import androidx.compose.material3.*
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.collectAsState
-import androidx.compose.runtime.getValue
+import androidx.compose.foundation.layout.*
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.ArrowBack
+import androidx.compose.material3.*
+import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import com.example.edubridge.data.PanicAlertRepository
 import com.google.android.gms.maps.model.CameraPosition
-import com.google.maps.android.compose.*
+import com.google.maps.android.compose.* import com.google.maps.android.compose.MapUiSettings
+import com.google.maps.android.compose.Marker
+import com.google.maps.android.compose.MarkerState
+import com.google.maps.android.compose.rememberCameraPositionState
+import com.google.android.gms.maps.model.BitmapDescriptorFactory // Necesario para el marcador
 
-// Anotación para solucionar el error de TopAppBar
-@SuppressLint("UnrememberedMutableState")
+/**
+ * Mapa de Alertas de Pánico (Luis).
+ * Muestra la ubicación del alumno en peligro en un mapa en tiempo real.
+ * @param onDismiss Función para cerrar la pantalla y volver al dashboard.
+ */
 @OptIn(ExperimentalMaterial3Api::class)
+@SuppressLint("MissingPermission")
 @Composable
-fun AlertMapScreen(onDismiss: () -> Unit) {
-    val alert by PanicAlertRepository.activeAlert.collectAsState()
-    val cameraPositionState = rememberCameraPositionState()
+fun AlertMapScreen(onDismiss: () -> Unit, modifier: Modifier = Modifier) {
+    // Escucha la alerta activa en tiempo real.
+    val alert by PanicAlertRepository.activeAlert.collectAsState(initial = null)
+
+    // Estado de la cámara para poder mover el mapa al punto de la alerta.
+    val cameraPositionState = rememberCameraPositionState {
+        // Posición por defecto si no hay alerta
+        position = CameraPosition.fromLatLngZoom(com.google.android.gms.maps.model.LatLng(19.0, -98.0), 10f)
+    }
 
     Scaffold(
         topBar = {
-            TopAppBar(title = { Text("Alerta de Seguridad Activa") })
+            TopAppBar(
+                title = { Text(if (alert != null) "Alerta Activa: Localizando..." else "Alerta Resuelta") },
+                navigationIcon = {
+                    // Botón para volver al panel del profesor.
+                    IconButton(onClick = onDismiss) {
+                        Icon(Icons.Default.ArrowBack, contentDescription = "Volver al Panel")
+                    }
+                }
+            )
         }
-    ) { padding ->
-        Box(modifier = Modifier.padding(padding).fillMaxSize()) {
+    ) { innerPadding ->
+        Box(modifier = modifier.padding(innerPadding).fillMaxSize()) {
+
             if (alert != null) {
                 val currentAlert = alert!!
 
-                // Actualizar la posición de la cámara cuando la alerta cambia
-                cameraPositionState.position = CameraPosition.fromLatLngZoom(currentAlert.location, 15f)
+                // Mueve la cámara al punto de la alerta cuando los datos se actualizan.
+                LaunchedEffect(currentAlert.location) {
+                    cameraPositionState.position = CameraPosition.fromLatLngZoom(currentAlert.location, 15f)
+                }
 
+                // 1. Componente Google Map
                 GoogleMap(
                     modifier = Modifier.fillMaxSize(),
-                    cameraPositionState = cameraPositionState
+                    cameraPositionState = cameraPositionState,
+                    uiSettings = MapUiSettings(zoomControlsEnabled = false)
                 ) {
-                    // Marcador en la ubicación del alumno (CORRECCIÓN FINAL)
+                    // 2. Marcador en la ubicación del alumno
                     Marker(
-                        // Se crea un MarkerState y se le pasa la posición
                         state = MarkerState(position = currentAlert.location),
-                        title = "¡Alerta de ${currentAlert.studentName}!",
-                        snippet = "Ubicación de la emergencia"
+                        title = "¡Alerta de Pánico!",
+                        snippet = "Alumno: ${currentAlert.studentName}",
+                        icon = BitmapDescriptorFactory.defaultMarker(BitmapDescriptorFactory.HUE_RED)
                     )
                 }
 
-                // Botón para descartar la alerta
+                // 3. Botón para descartar la alerta (Flotante)
                 Button(
                     onClick = {
-                        PanicAlertRepository.clearAlert()
-                        onDismiss() // Regresa a la pantalla anterior
+                        PanicAlertRepository.clearAlert() // Lógica: Borra la alerta.
+                        onDismiss() // Regresa a la pantalla anterior.
                     },
-                    modifier = Modifier.align(Alignment.BottomCenter).padding(16.dp)
+                    colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.error),
+                    modifier = Modifier.align(Alignment.BottomCenter).padding(24.dp)
                 ) {
-                    Text("Marcar como Atendido y Cerrar")
+                    Text("Marcar como Atendido y Cerrar", style = MaterialTheme.typography.titleMedium)
                 }
 
             } else {
-                // No hay alerta activa
+                // Estado cuando no hay alerta activa (se cerró o nunca se activó)
                 Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                    Text("No hay alertas activas en este momento.")
+                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                        Icon(Icons.Default.TaskAlt, contentDescription = null, Modifier.size(64.dp), tint = MaterialTheme.colorScheme.primary)
+                        Spacer(modifier = Modifier.height(16.dp))
+                        Text(
+                            "No hay alertas de seguridad activas en este momento.",
+                            style = MaterialTheme.typography.headlineSmall,
+                            textAlign = androidx.compose.ui.text.style.TextAlign.Center
+                        )
+                    }
                 }
             }
         }
