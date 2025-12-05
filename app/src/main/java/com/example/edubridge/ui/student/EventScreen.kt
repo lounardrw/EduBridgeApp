@@ -18,9 +18,9 @@ import androidx.compose.ui.unit.sp
 import com.example.edubridge.R
 
 @Composable
-fun EventsScreen(modifier: Modifier) {
-    LazyColumn(
-        modifier = Modifier
+fun EventsScreen(modifier: Modifier = Modifier) { // <-- ¡Añade = Modifier aquí!
+    LazyColumn(// Usa el modifier que se pasa como parámetro
+        modifier = modifier
             .fillMaxSize()
             .background(Color(0xFFF0F2F5)),
         contentPadding = PaddingValues(16.dp),
