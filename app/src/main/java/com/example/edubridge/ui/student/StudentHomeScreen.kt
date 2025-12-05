@@ -30,9 +30,8 @@ sealed class Screen(val route: String) {
 }
 
 @Composable fun LibraryScreen(modifier: Modifier = Modifier) { Text("Library Content", modifier) }
-// ¡HEMOS BORRADO LA FUNCIÓN EventsScreen() DE AQUÍ!
-@Composable fun ClassroomsScreen(modifier: Modifier = Modifier) { Text("Classrooms Content", modifier) }
 
+@Composable fun ClassroomsScreen(modifier: Modifier = Modifier) { Text("Classrooms Content", modifier) }
 
 @OptIn(ExperimentalMaterial3Api::class)
 @SuppressLint("MissingPermission")
@@ -72,6 +71,7 @@ fun StudentHomeScreen() {
             ).show()
         }
     }
+
     Scaffold(
         topBar = {
             TopAppBar(title = { Text("Portal del Alumno") })
@@ -79,12 +79,12 @@ fun StudentHomeScreen() {
         bottomBar = {
             BottomAppBar {
                 navigationItems.forEach { item ->
-                    IconButton(
+                    NavigationBarItem(
+                        selected = currentScreen == item.screen,
                         onClick = { currentScreen = item.screen },
-                        modifier = Modifier.weight(1f)
-                    ) {
-                        Icon(item.icon, contentDescription = item.label)
-                    }
+                        icon = { Icon(item.icon, contentDescription = item.label) },
+                        label = { Text(item.label) }
+                    )
                 }
             }
         },
@@ -105,7 +105,10 @@ fun StudentHomeScreen() {
         }
     ) { innerPadding ->
         val modifier = Modifier.padding(innerPadding)
+
+        // --- PASO 2: ASEGÚRATE DE QUE EL WHEN LLAME A LA FUNCIÓN CORRECTA ---
         when (currentScreen) {
+            // Esta llamada ahora usará la función real de LibraryScreen.kt
             is Screen.Library -> LibraryScreen(modifier = modifier)
             is Screen.Events -> EventsScreen()
             is Screen.Classrooms -> ClassroomsScreen(modifier = modifier)
