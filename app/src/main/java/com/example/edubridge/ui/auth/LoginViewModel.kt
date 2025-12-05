@@ -17,7 +17,6 @@ data class LoginUiState(
     val user: User? = null,
     val error: String? = null
 )
-
 class LoginViewModel : ViewModel() {
 
     private val auth = FirebaseAuth.getInstance()
@@ -51,9 +50,7 @@ class LoginViewModel : ViewModel() {
                     matricula = body.matricula,
                     nombre = body.nombre,
                     correo = body.correo,
-                    rol = body.rol
-                )
-
+                    rol = body.rol )
                 _state.value = LoginUiState(user = user)
 
             } catch (e: Exception) {

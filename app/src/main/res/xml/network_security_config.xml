@@ -3,7 +3,7 @@
     <!--
 CARLA XOCHITL CRISTALINAS MAYA     -->
     <domain-config cleartextTrafficPermitted="true">
-        <domain includeSubdomains="true">10.0.2.2</domain>
+        <domain includeSubdomains="true">10.249.144.188</domain>
     </domain-config>
 
     <!--
