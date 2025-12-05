@@ -34,10 +34,6 @@ sealed class Screen(val route: String) {
     object Classrooms : Screen("classrooms")
 }
 
-// --- PANTALLAS PROVISIONALES (PARA EVENTOS Y AULAS) ---
-@Composable fun ClassroomsScreen(modifier: Modifier = Modifier) { Text("Aulas Interactivas (Cuenca)", modifier) }
-
-
 // ==================================================================
 // PANTALLA PRINCIPAL DEL ALUMNO (Home)
 // ==================================================================
@@ -166,9 +162,17 @@ fun StudentHomeScreen(email: String) {
 // ==================================================================
 
 @Composable
-fun StudentProfileDrawerContent(drawerState: DrawerState, email: String) {
+fun StudentProfileDrawerContent(
+    drawerState: DrawerState,
+    email: String,
+    modifier: Modifier = Modifier
+) {
     val scope = rememberCoroutineScope()
-    Column(modifier = Modifier.padding(16.dp)) {
+    Column(
+        modifier = modifier
+            .padding(16.dp)
+            .fillMaxSize() 
+    ) {
         Text("Perfil del Alumno", style = MaterialTheme.typography.headlineSmall)
         Spacer(modifier = Modifier.height(16.dp))
         Text("Correo: $email", style = MaterialTheme.typography.bodyLarge)

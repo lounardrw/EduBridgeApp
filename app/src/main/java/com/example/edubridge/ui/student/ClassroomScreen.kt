@@ -8,13 +8,13 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 
 @Composable
-fun ClassroomsScreen() {
-    // TODO: Aquí se mostrarán los grados y los cuestionarios (quizzes).
+fun ClassroomsScreen(modifier: Modifier = Modifier) {
     Box(
-        modifier = Modifier.fillMaxSize(),
+        modifier = modifier.fillMaxSize(), // Es una buena práctica usar el modifier en el contenedor principal
         contentAlignment = Alignment.Center
     ) {
-        Text(text = "Aulas Interactivas")
+        Text(
+            text = "Aulas Interactivas (Cuenca)"
+        )
     }
 }
-    

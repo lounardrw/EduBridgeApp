@@ -25,8 +25,9 @@ import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
 import com.example.edubridge.R
 
+// --- PASO CLAVE: AÑADIMOS EL PARÁMETRO MODIFIER ---
 @Composable
-fun EventsScreen() {
+fun EventsScreen(modifier: Modifier = Modifier) {
     // Estado para guardar el evento seleccionado que se mostrará en el diálogo.
     var selectedEvent by remember { mutableStateOf<EventData?>(null) }
 
@@ -38,7 +39,8 @@ fun EventsScreen() {
     }
 
     LazyColumn(
-        modifier = Modifier
+        // --- Y LO APLICAMOS AQUÍ ---
+        modifier = modifier
             .fillMaxSize()
             .background(Color(0xFFF0F2F5)),
         contentPadding = PaddingValues(16.dp),
@@ -55,6 +57,7 @@ fun EventsScreen() {
 
         val events = getSampleEvents()
 
+        // Usamos items(events) directamente para mejor rendimiento
         items(events.size) { index ->
             val event = events[index]
             EventCard(
@@ -65,6 +68,7 @@ fun EventsScreen() {
     }
 }
 
+// El resto de tu archivo ya está perfecto, no necesita cambios.
 @Composable
 fun EventCard(
     event: EventData,
@@ -201,7 +205,3 @@ fun getSampleEvents(): List<EventData> {
         )
     )
 }
-
-
-
-
