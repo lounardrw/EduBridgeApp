@@ -30,11 +30,10 @@ fun EventsScreen() {
     // Estado para guardar el evento seleccionado que se mostrará en el diálogo.
     var selectedEvent by remember { mutableStateOf<EventData?>(null) }
 
-    // Si hay un evento seleccionado, mostramos el diálogo con toda su información.
     selectedEvent?.let { event ->
         EventDetailDialog(
             event = event,
-            onDismiss = { selectedEvent = null } // Al cerrar, limpiamos la selección.
+            onDismiss = { selectedEvent = null }
         )
     }
 
@@ -60,14 +59,12 @@ fun EventsScreen() {
             val event = events[index]
             EventCard(
                 event = event,
-                // Al hacer clic en la tarjeta, guardamos el evento completo en nuestro estado.
                 onCardClick = { selectedEvent = event }
             )
         }
     }
 }
 
-// ----- TARJETA DE EVENTO CLICABLE -----
 @Composable
 fun EventCard(
     event: EventData,
@@ -76,7 +73,7 @@ fun EventCard(
     Card(
         modifier = Modifier
             .fillMaxWidth()
-            .clickable(onClick = onCardClick), // La tarjeta entera responde al clic.
+            .clickable(onClick = onCardClick),
         elevation = CardDefaults.cardElevation(defaultElevation = 4.dp),
         shape = RoundedCornerShape(16.dp),
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
@@ -120,7 +117,6 @@ fun EventCard(
     }
 }
 
-// ----- DIÁLOGO FINAL CON IMAGEN, INFO Y BARRA DE DESPLAZAMIENTO -----
 @Composable
 fun EventDetailDialog(event: EventData, onDismiss: () -> Unit) {
     Dialog(onDismissRequest = onDismiss) {
@@ -128,21 +124,18 @@ fun EventDetailDialog(event: EventData, onDismiss: () -> Unit) {
             shape = RoundedCornerShape(16.dp),
             modifier = Modifier.fillMaxWidth()
         ) {
-            // Usamos una Columna que permite el desplazamiento vertical.
             Column(
                 modifier = Modifier.verticalScroll(rememberScrollState())
             ) {
-                // 1. La imagen del evento en la parte superior del diálogo.
                 Image(
                     painter = painterResource(id = event.imageResId),
                     contentDescription = null,
                     modifier = Modifier
                         .fillMaxWidth()
-                        .height(180.dp), // Un poco más alta para que se vea mejor
+                        .height(180.dp),
                     contentScale = ContentScale.Crop
                 )
 
-                // 2. Contenido de texto con padding.
                 Column(modifier = Modifier.padding(16.dp)) {
                     Text(
                         text = event.title,
@@ -152,13 +145,10 @@ fun EventDetailDialog(event: EventData, onDismiss: () -> Unit) {
                         modifier = Modifier.fillMaxWidth()
                     )
                     Spacer(modifier = Modifier.height(16.dp))
-
-                    // 3. LA BARRA DE DESPLAZAMIENTO YA ESTÁ APLICADA A TODA LA COLUMNA
-                    //    Por lo que este texto largo se podrá desplazar sin problema.
                     Text(
                         text = event.longDescription,
                         style = MaterialTheme.typography.bodyLarge,
-                        lineHeight = 24.sp // Aumenta el espacio entre líneas para mejor legibilidad
+                        lineHeight = 24.sp
                     )
                     Spacer(modifier = Modifier.height(24.dp))
 
@@ -174,8 +164,6 @@ fun EventDetailDialog(event: EventData, onDismiss: () -> Unit) {
     }
 }
 
-
-// ----- Clase y función de ayuda para organizar los datos -----
 data class EventData(
     val title: String,
     val description: String,
