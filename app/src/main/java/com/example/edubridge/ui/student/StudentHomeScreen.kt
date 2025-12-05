@@ -26,10 +26,10 @@ sealed class Screen(val route: String) {
     object Classrooms : Screen("classrooms")
 }
 
-@Composable fun LibraryScreen(modifier: Modifier = Modifier) { Text("Library Content", modifier) }
+// --- PASO 1: ELIMINA ESTAS FUNCIONES DUMMY ---
+// @Composable fun LibraryScreen(modifier: Modifier = Modifier) { Text("Library Content", modifier) } <-- ELIMINAR
 @Composable fun EventsScreen(modifier: Modifier = Modifier) { Text("Events Content", modifier) }
 @Composable fun ClassroomsScreen(modifier: Modifier = Modifier) { Text("Classrooms Content", modifier) }
-
 
 @OptIn(ExperimentalMaterial3Api::class)
 @SuppressLint("MissingPermission")
@@ -38,30 +38,22 @@ fun StudentHomeScreen() {
     val context = LocalContext.current
     val fusedLocationClient = remember { LocationServices.getFusedLocationProviderClient(context) }
 
-    // --- FIX START ---
-    // 1. Define the list of navigation items
     val navigationItems = listOf(
         NavItem(label = "Library", icon = Icons.Default.MenuBook, screen = Screen.Library),
         NavItem(label = "Events", icon = Icons.Default.Event, screen = Screen.Events),
         NavItem(label = "Classrooms", icon = Icons.Default.School, screen = Screen.Classrooms)
     )
 
-    // 2. Manage the state for the current screen
     var currentScreen: Screen by remember { mutableStateOf<Screen>(Screen.Library) }
-    // --- FIX END ---
 
-
-    // Launcher para solicitar permisos de ubicación
     val locationPermissionLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.RequestMultiplePermissions()
     ) { permissions ->
         if (permissions.getOrDefault(Manifest.permission.ACCESS_FINE_LOCATION, false)) {
-            // Permiso otorgado, obtener ubicación
             fusedLocationClient.lastLocation.addOnSuccessListener { location ->
                 if (location != null) {
                     val latLng = LatLng(location.latitude, location.longitude)
                     Log.d("PanicButton", "Ubicación obtenida: $latLng")
-                    // Enviar la alerta al "repositorio"
                     PanicAlertRepository.triggerAlert("Alumno de Prueba", latLng)
                     Toast.makeText(context, "¡Alerta enviada!", Toast.LENGTH_SHORT).show()
                 } else {
@@ -69,10 +61,10 @@ fun StudentHomeScreen() {
                 }
             }
         } else {
-            // Permiso denegado
             Toast.makeText(context, "El permiso de ubicación es necesario para el botón de pánico.", Toast.LENGTH_LONG).show()
         }
     }
+
     Scaffold(
         topBar = {
             TopAppBar(title = { Text("Portal del Alumno") })
@@ -80,19 +72,18 @@ fun StudentHomeScreen() {
         bottomBar = {
             BottomAppBar {
                 navigationItems.forEach { item ->
-                    IconButton(
+                    NavigationBarItem(
+                        selected = currentScreen == item.screen,
                         onClick = { currentScreen = item.screen },
-                        modifier = Modifier.weight(1f)
-                    ) {
-                        Icon(item.icon, contentDescription = item.label)
-                    }
+                        icon = { Icon(item.icon, contentDescription = item.label) },
+                        label = { Text(item.label) }
+                    )
                 }
             }
         },
         floatingActionButton = {
             FloatingActionButton(
                 onClick = {
-                    // Al hacer clic, pedir permisos
                     locationPermissionLauncher.launch(
                         arrayOf(
                             Manifest.permission.ACCESS_FINE_LOCATION,
@@ -106,9 +97,11 @@ fun StudentHomeScreen() {
             }
         }
     ) { innerPadding ->
-        // Contenido principal que cambia según la pantalla seleccionada
         val modifier = Modifier.padding(innerPadding)
+
+        // --- PASO 2: ASEGÚRATE DE QUE EL WHEN LLAME A LA FUNCIÓN CORRECTA ---
         when (currentScreen) {
+            // Esta llamada ahora usará la función real de LibraryScreen.kt
             is Screen.Library -> LibraryScreen(modifier = modifier)
             is Screen.Events -> EventsScreen(modifier = modifier)
             is Screen.Classrooms -> ClassroomsScreen(modifier = modifier)
