@@ -17,6 +17,7 @@ import androidx.compose.ui.platform.LocalContext
 import com.example.edubridge.data.PanicAlertRepository
 import com.google.android.gms.location.LocationServices
 import com.google.android.gms.maps.model.LatLng
+import com.google.firebase.auth.FirebaseAuth
 
 data class NavItem(val label: String, val icon: ImageVector, val screen: Screen)
 
@@ -30,38 +31,30 @@ sealed class Screen(val route: String) {
 @Composable fun EventsScreen(modifier: Modifier = Modifier) { Text("Events Content", modifier) }
 @Composable fun ClassroomsScreen(modifier: Modifier = Modifier) { Text("Classrooms Content", modifier) }
 
-
 @OptIn(ExperimentalMaterial3Api::class)
 @SuppressLint("MissingPermission")
 @Composable
-fun StudentHomeScreen() {
+fun StudentHomeScreen(onLogout: () -> Unit = {}) {
+
     val context = LocalContext.current
     val fusedLocationClient = remember { LocationServices.getFusedLocationProviderClient(context) }
+    val auth = FirebaseAuth.getInstance()
 
-    // --- FIX START ---
-    // 1. Define the list of navigation items
     val navigationItems = listOf(
-        NavItem(label = "Library", icon = Icons.Default.MenuBook, screen = Screen.Library),
-        NavItem(label = "Events", icon = Icons.Default.Event, screen = Screen.Events),
-        NavItem(label = "Classrooms", icon = Icons.Default.School, screen = Screen.Classrooms)
+        NavItem("Library", Icons.Default.MenuBook, Screen.Library),
+        NavItem("Events", Icons.Default.Event, Screen.Events),
+        NavItem("Classrooms", Icons.Default.School, Screen.Classrooms)
     )
 
-    // 2. Manage the state for the current screen
-    var currentScreen: Screen by remember { mutableStateOf<Screen>(Screen.Library) }
-    // --- FIX END ---
+    var currentScreen: Screen by remember { mutableStateOf(Screen.Library) }
 
-
-    // Launcher para solicitar permisos de ubicación
     val locationPermissionLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.RequestMultiplePermissions()
     ) { permissions ->
         if (permissions.getOrDefault(Manifest.permission.ACCESS_FINE_LOCATION, false)) {
-            // Permiso otorgado, obtener ubicación
             fusedLocationClient.lastLocation.addOnSuccessListener { location ->
                 if (location != null) {
                     val latLng = LatLng(location.latitude, location.longitude)
-                    Log.d("PanicButton", "Ubicación obtenida: $latLng")
-                    // Enviar la alerta al "repositorio"
                     PanicAlertRepository.triggerAlert("Alumno de Prueba", latLng)
                     Toast.makeText(context, "¡Alerta enviada!", Toast.LENGTH_SHORT).show()
                 } else {
@@ -69,13 +62,24 @@ fun StudentHomeScreen() {
                 }
             }
         } else {
-            // Permiso denegado
-            Toast.makeText(context, "El permiso de ubicación es necesario para el botón de pánico.", Toast.LENGTH_LONG).show()
+            Toast.makeText(context, "El permiso es necesario.", Toast.LENGTH_LONG).show()
         }
     }
+
     Scaffold(
         topBar = {
-            TopAppBar(title = { Text("Portal del Alumno") })
+            TopAppBar(
+                title = { Text("Portal del Alumno") },
+                actions = {
+                    IconButton(onClick = {
+                        auth.signOut()
+                        Toast.makeText(context, "Sesión cerrada", Toast.LENGTH_SHORT).show()
+                        onLogout() // Permite regresar al login
+                    }) {
+                        Icon(Icons.Default.Logout, contentDescription = "Cerrar sesión")
+                    }
+                }
+            )
         },
         bottomBar = {
             BottomAppBar {
@@ -92,7 +96,6 @@ fun StudentHomeScreen() {
         floatingActionButton = {
             FloatingActionButton(
                 onClick = {
-                    // Al hacer clic, pedir permisos
                     locationPermissionLauncher.launch(
                         arrayOf(
                             Manifest.permission.ACCESS_FINE_LOCATION,
@@ -106,12 +109,11 @@ fun StudentHomeScreen() {
             }
         }
     ) { innerPadding ->
-        // Contenido principal que cambia según la pantalla seleccionada
         val modifier = Modifier.padding(innerPadding)
         when (currentScreen) {
-            is Screen.Library -> LibraryScreen(modifier = modifier)
-            is Screen.Events -> EventsScreen(modifier = modifier)
-            is Screen.Classrooms -> ClassroomsScreen(modifier = modifier)
+            is Screen.Library -> LibraryScreen(modifier)
+            is Screen.Events -> EventsScreen(modifier)
+            is Screen.Classrooms -> ClassroomsScreen(modifier)
         }
     }
 }
