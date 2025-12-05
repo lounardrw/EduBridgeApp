@@ -7,7 +7,6 @@ import android.widget.Toast
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
@@ -18,8 +17,6 @@ import androidx.compose.ui.platform.LocalContext
 import com.example.edubridge.data.PanicAlertRepository
 import com.google.android.gms.location.LocationServices
 import com.google.android.gms.maps.model.LatLng
-// NO BORRES LA SIGUIENTE LÍNEA, ES LA IMPORTACIÓN DE TU PANTALLA REAL
-import com.example.edubridge.ui.student.EventsScreen
 
 data class NavItem(val label: String, val icon: ImageVector, val screen: Screen)
 
@@ -28,8 +25,6 @@ sealed class Screen(val route: String) {
     object Events : Screen("events")
     object Classrooms : Screen("classrooms")
 }
-
-@Composable fun LibraryScreen(modifier: Modifier = Modifier) { Text("Library Content", modifier) }
 
 @Composable fun ClassroomsScreen(modifier: Modifier = Modifier) { Text("Classrooms Content", modifier) }
 
@@ -106,11 +101,10 @@ fun StudentHomeScreen() {
     ) { innerPadding ->
         val modifier = Modifier.padding(innerPadding)
 
-        // --- PASO 2: ASEGÚRATE DE QUE EL WHEN LLAME A LA FUNCIÓN CORRECTA ---
+        // Ahora, esta llamada no tiene ambigüedad y llamará a tu pantalla real
         when (currentScreen) {
-            // Esta llamada ahora usará la función real de LibraryScreen.kt
             is Screen.Library -> LibraryScreen(modifier = modifier)
-            is Screen.Events -> EventsScreen()
+            is Screen.Events -> EventsScreen(modifier = modifier)
             is Screen.Classrooms -> ClassroomsScreen(modifier = modifier)
         }
     }

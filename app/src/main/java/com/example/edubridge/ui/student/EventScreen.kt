@@ -18,7 +18,7 @@ import androidx.compose.ui.unit.sp
 import com.example.edubridge.R
 
 @Composable
-fun EventsScreen() {
+fun EventsScreen(modifier: Modifier) {
     LazyColumn(
         modifier = Modifier
             .fillMaxSize()
