@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="utf-8"?>
+<network-security-config>
+    <!--
+CARLA XOCHITL CRISTALINAS MAYA     -->
+    <domain-config cleartextTrafficPermitted="true">
+        <domain includeSubdomains="true">10.0.2.2</domain>
+    </domain-config>
+
+    <!--
+    Configuración por defecto: Deshabilita el tráfico cleartext (HTTP)
+    para el resto de internet,
+    -->
+    <base-config cleartextTrafficPermitted="false">
+        <trust-anchors>
+        </trust-anchors>
+    </base-config>
+</network-security-config>
