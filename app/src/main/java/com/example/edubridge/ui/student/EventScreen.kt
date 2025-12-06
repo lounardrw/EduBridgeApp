@@ -16,7 +16,6 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.painterResource
@@ -26,14 +25,37 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
 import com.example.edubridge.R
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Check
 
-// --- PASO CLAVE: AÑADIMOS EL PARÁMETRO MODIFIER ---
+
+// ----- ENUM PARA LOS FILTROS -----
+enum class EventType(val displayName: String) {
+    TODO("Todo"),
+    PRÓXIMOS("Próximos"),
+    BECAS("Becas"),
+    AVISOS("Avisos")
+}
+
 @Composable
 fun EventsScreen(modifier: Modifier = Modifier) {
-    // Estado para guardar el evento seleccionado que se mostrará en el diálogo.
+    // --- ESTADOS ---
     var selectedEvent by remember { mutableStateOf<EventData?>(null) }
     var currentFilter by remember { mutableStateOf(EventType.TODO) }
 
+    // --- LÓGICA DE FILTRADO ---
+    // Obtenemos la lista completa de eventos
+    val allEvents = remember { getSampleEvents() }
+    // Filtramos la lista basándonos en el estado 'currentFilter'
+    val filteredEvents = remember(currentFilter, allEvents) {
+        if (currentFilter == EventType.TODO) {
+            allEvents
+        } else {
+            allEvents.filter { it.type == currentFilter }
+        }
+    }
+
+    // --- DIÁLOGO DE DETALLE ---
     selectedEvent?.let { event ->
         EventDetailDialog(
             event = event,
@@ -41,64 +63,81 @@ fun EventsScreen(modifier: Modifier = Modifier) {
         )
     }
 
+    // --- ESTRUCTURA DE LA PANTALLA ---
+    // Usamos una sola LazyColumn para toda la pantalla
     LazyColumn(
-        // --- Y LO APLICAMOS AQUÍ ---
         modifier = modifier
             .fillMaxSize()
             .background(Color(0xFFF0F2F5)),
         contentPadding = PaddingValues(16.dp),
-        verticalArrangement = Arrangement.spacedBy(20.dp)
+        verticalArrangement = Arrangement.spacedBy(16.dp)
     ) {
+        // 1. Título
         item {
             Text(
                 text = "Eventos y Avisos",
                 style = MaterialTheme.typography.headlineLarge,
                 fontWeight = FontWeight.Bold,
-                modifier = Modifier.padding(bottom = 8.dp)
             )
         }
 
-        LazyColumn(
-            modifier = Modifier
-                .fillMaxSize()
-                .background(Color(0xFFF0F2F5)),
-            contentPadding = PaddingValues(16.dp),
-            verticalArrangement = Arrangement.spacedBy(16.dp)
-        ) {
-            if (filteredEvents.isEmpty()) {
-                item {
-                    Text(
-                        text = "No hay eventos en esta categoría.",
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(top = 50.dp),
-                        textAlign = TextAlign.Center,
-                        color = Color.Gray
-                    )
-                }
-            } else {
-                items(filteredEvents) { event ->
-                    EventCard(
-                        event = event,
-                        onCardClick = { selectedEvent = event }
-                    )
-                }
+        // 2. Fila de Filtros
+        item {
+            FilterChips(
+                selectedType = currentFilter,
+                onFilterChange = { newFilter -> currentFilter = newFilter }
+            )
+        }
+
+        // 3. Lista de Eventos Filtrados
+        if (filteredEvents.isEmpty()) {
+            item {
+                Text(
+                    text = "No hay eventos en esta categoría.",
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(top = 50.dp),
+                    textAlign = TextAlign.Center,
+                    color = Color.Gray,
+                    style = MaterialTheme.typography.bodyLarge
+                )
+            }
+        } else {
+            items(filteredEvents) { event ->
+                EventCard(
+                    event = event,
+                    onCardClick = { selectedEvent = event }
+                )
             }
         }
     }
 }
 
-
-        // Usamos items(events) directamente para mejor rendimiento
-        items(events.size) { index ->
-            val event = events[index]
-            EventCard(
-                event = event,
-                onCardClick = { selectedEvent = event }
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun FilterChips(selectedType: EventType, onFilterChange: (EventType) -> Unit) {
+    LazyRow(
+        horizontalArrangement = Arrangement.spacedBy(8.dp)
+    ) {
+        items(EventType.values()) { eventType ->
+            FilterChip(
+                selected = selectedType == eventType,
+                onClick = { onFilterChange(eventType) },
+                label = { Text(eventType.displayName) },
+                leadingIcon = {
+                    if (selectedType == eventType) {
+                        Icon(
+                            imageVector = Icons.Default.Check,
+                            contentDescription = "Seleccionado",
+                            modifier = Modifier.size(FilterChipDefaults.IconSize)
+                        )
+                    }
+                }
             )
         }
     }
 }
+
 
 // El resto de tu archivo ya está perfecto, no necesita cambios.
 @Composable
