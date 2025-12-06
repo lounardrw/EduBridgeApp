@@ -1,6 +1,9 @@
 package com.example.edubridge.ui.student
 
+// IMPORTACIONES COMBINADAS DE AMBAS RAMAS
 import com.example.edubridge.ui.student.EventsScreen
+import com.example.edubridge.ui.student.LibraryScreen // Asegúrate de tener este archivo
+import com.example.edubridge.ui.student.ClassroomsScreen // Y este también
 import android.Manifest
 import android.annotation.SuppressLint
 import android.util.Log
@@ -14,18 +17,17 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import com.example.edubridge.data.PanicAlertRepository
 import com.google.android.gms.location.LocationServices
 import com.google.android.gms.maps.model.LatLng
 import kotlinx.coroutines.launch
 
-// --- DEFINICIONES DE PANTALLAS Y NAVEGACIÓN INTERNA ---
+// --- DEFINICIONES DE PANTALLAS Y NAVEGACIÓN INTERNA (Versión de 'main') ---
 data class NavItem(val label: String, val icon: ImageVector, val screen: Screen)
 
 sealed class Screen(val route: String) {
@@ -35,7 +37,7 @@ sealed class Screen(val route: String) {
 }
 
 // ==================================================================
-// PANTALLA PRINCIPAL DEL ALUMNO (Home)
+// PANTALLA PRINCIPAL DEL ALUMNO (Home) (Versión de 'main', es la correcta para tu arquitectura)
 // ==================================================================
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -47,14 +49,10 @@ fun StudentHomeScreen(email: String) {
     val fusedLocationClient = remember { LocationServices.getFusedLocationProviderClient(context) }
 
     // --- ESTADOS DE LA UI ---
-    // Para el menú lateral izquierdo (Perfil)
     val profileDrawerState = rememberDrawerState(initialValue = DrawerValue.Closed)
-    // Para la ficha inferior derecha (Configuración)
     var showSettingsSheet by remember { mutableStateOf(false) }
-    // Para la navegación inferior (Biblioteca, Eventos, Aulas)
     var currentScreen: Screen by remember { mutableStateOf<Screen>(Screen.Library) }
 
-    // Lista de ítems para la barra de navegación inferior
     val navigationItems = listOf(
         NavItem(label = "Biblioteca", icon = Icons.Default.MenuBook, screen = Screen.Library),
         NavItem(label = "Eventos", icon = Icons.Default.Event, screen = Screen.Events),
@@ -71,7 +69,7 @@ fun StudentHomeScreen(email: String) {
                 if (location != null) {
                     val latLng = LatLng(location.latitude, location.longitude)
                     Log.d("PanicButton", "Ubicación obtenida: $latLng")
-                    PanicAlertRepository.triggerAlert("Alumno de Prueba", latLng)
+                    PanicAlertRepository.triggerAlert(email, latLng) // Usamos el email real
                     Toast.makeText(context, "¡Alerta enviada!", Toast.LENGTH_SHORT).show()
                 } else {
                     Toast.makeText(context, "No se pudo obtener la ubicación.", Toast.LENGTH_SHORT).show()
@@ -87,25 +85,27 @@ fun StudentHomeScreen(email: String) {
     ModalNavigationDrawer(
         drawerState = profileDrawerState,
         gesturesEnabled = profileDrawerState.isOpen,
-        drawerContent = {StudentProfileDrawerContent(
-            drawerState = profileDrawerState, // Correct name
-            email = email
-        )
+        drawerContent = {
+            StudentProfileDrawerContent(
+                drawerState = profileDrawerState,
+                email = email
+            )
         }
     ) {
         Scaffold(
             topBar = {
                 TopAppBar(
                     title = { Text("Portal del Alumno") },
-                    // Icono para abrir el menú de perfil (izquierdo)
                     navigationIcon = {
                         IconButton(onClick = { scope.launch { profileDrawerState.open() } }) {
                             Icon(Icons.Default.Person, contentDescription = "Menú Perfil")
                         }
                     },
-                    // Iconos de acción a la derecha
                     actions = {
-                        // Icono para abrir la ficha de configuración (derecho)
+                        // Mantenemos el botón de Asistente de IA de la rama de Karen
+                        IconButton(onClick = { /* TODO: Lógica para abrir el chat de IA */ }) {
+                            Icon(Icons.Default.SmartToy, contentDescription = "Asistente IA")
+                        }
                         IconButton(onClick = { showSettingsSheet = true }) {
                             Icon(Icons.Default.Settings, contentDescription = "Menú Ajustes")
                         }
@@ -113,7 +113,6 @@ fun StudentHomeScreen(email: String) {
                 )
             },
             bottomBar = {
-                // Barra de navegación inferior
                 NavigationBar {
                     navigationItems.forEach { item ->
                         NavigationBarItem(
@@ -126,23 +125,28 @@ fun StudentHomeScreen(email: String) {
                 }
             },
             floatingActionButton = {
-                // Botón de pánico
+                // Botón de pánico (Usamos la versión mejorada de la rama de Karen)
                 FloatingActionButton(
                     onClick = {
                         locationPermissionLauncher.launch(
                             arrayOf(Manifest.permission.ACCESS_FINE_LOCATION, Manifest.permission.ACCESS_COARSE_LOCATION)
                         )
                     },
-                    containerColor = MaterialTheme.colorScheme.error
+                    containerColor = MaterialTheme.colorScheme.error,
+                    modifier = Modifier.size(72.dp).padding(8.dp), // Estilo de Karen
+                    shape = MaterialTheme.shapes.extraLarge      // Estilo de Karen
                 ) {
-                    Icon(Icons.Default.Warning, contentDescription = "Botón de Pánico")
+                    Icon(
+                        Icons.Default.Warning,
+                        contentDescription = "Botón de Pánico",
+                        modifier = Modifier.size(40.dp) // Estilo de Karen
+                    )
                 }
             }
         ) { innerPadding ->
-            // Contenido central que cambia según la selección de la barra inferior
             val modifier = Modifier.padding(innerPadding)
             when (currentScreen) {
-                // ¡Asegúrate de que estas llamadas usan tus Composables reales!
+                // Las llamadas a las pantallas reales, como en 'main'
                 is Screen.Library -> LibraryScreen(modifier = modifier)
                 is Screen.Events -> EventsScreen(modifier = modifier)
                 is Screen.Classrooms -> ClassroomsScreen(modifier = modifier)
@@ -158,9 +162,10 @@ fun StudentHomeScreen(email: String) {
 
 
 // ==================================================================
-// COMPOSABLES AUXILIARES (Menús de Karen)
+// COMPOSABLES AUXILIARES (Combinamos lo mejor de ambos)
 // ==================================================================
 
+// Usamos la versión de 'main' que es más flexible
 @Composable
 fun StudentProfileDrawerContent(
     drawerState: DrawerState,
@@ -171,7 +176,7 @@ fun StudentProfileDrawerContent(
     Column(
         modifier = modifier
             .padding(16.dp)
-            .fillMaxSize() 
+            .fillMaxSize()
     ) {
         Text("Perfil del Alumno", style = MaterialTheme.typography.headlineSmall)
         Spacer(modifier = Modifier.height(16.dp))
@@ -197,14 +202,18 @@ fun SettingsModalSheet(onDismiss: () -> Unit) {
             modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp),
             verticalArrangement = Arrangement.spacedBy(12.dp)
         ) {
-            item { Text("Opciones y Fichas", style = MaterialTheme.typography.titleLarge, modifier = Modifier.padding(bottom = 8.dp)) }
-
+            item {
+                Text(
+                    "Opciones y Fichas",
+                    style = MaterialTheme.typography.titleLarge,
+                    modifier = Modifier.padding(bottom = 8.dp).fillMaxWidth(),
+                    textAlign = TextAlign.Center // Centramos el título como en la rama de Karen
+                )
+            }
             item { SettingItem(title = "Términos de Uso", description = "Reglas y Acuerdos Legales.") }
             item { SettingItem(title = "Aviso de Privacidad", description = "Tratamiento y uso exclusivo de datos de ubicación.") }
             item { SettingItem(title = "Contacto", description = "Teléfonos y horarios escolares.") }
-
             item { Spacer(modifier = Modifier.height(16.dp)) }
-
             item {
                 Button(onClick = onDismiss, modifier = Modifier.fillMaxWidth().padding(bottom = 32.dp)) {
                     Text("Cerrar")

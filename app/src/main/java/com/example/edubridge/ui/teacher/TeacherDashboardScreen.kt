@@ -17,29 +17,33 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.unit.dp
-import com.example.edubridge.data.PanicAlertRepository
+import com.example.edubridge.data.PanicAlertRepository // Repositorio para checar si hay alerta activa
 
-// Data class para representar cada opción del panel
+// DEFINICIONES DE ESTRUCTURAS
+// Estructura de datos para definir los botones de gestión del profesor.
 data class ManagementOption(
     val title: String,
     val description: String,
     val icon: ImageVector,
-    val onClick: () -> Unit
+    val onClick: () -> Unit // Función para navegar cuando se presiona.
 )
+
+// PANTALLA PRINCIPAL
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun TeacherDashboardScreen(
-    // Lambdas para manejar la navegación a las pantallas de gestión
+    // Funciones de navegación para cada módulo (vienen desde MainActivity).
     onManageLibrary: () -> Unit,
     onManageEvents: () -> Unit,
     onManageQuizzes: () -> Unit,
-    onViewAlert: () -> Unit // Lambda para navegar al mapa de alertas
+    onViewAlert: () -> Unit
 ) {
-    // Escucha si hay una alerta activa desde el repositorio
-    val activeAlert by PanicAlertRepository.activeAlert.collectAsState()
+    // Escucha el estado de alerta en tiempo real del repositorio.
+    // Si un alumno presiona el pánico, 'activeAlert' cambia y la UI se actualiza (recomposición).
+    val activeAlert by PanicAlertRepository.activeAlert.collectAsState(initial = null)
 
-    // Lista de opciones de gestión para el profesor
+    // Lista de opciones de gestión disponibles para el profesor.
     val managementOptions = listOf(
         ManagementOption(
             title = "Gestionar Biblioteca",
@@ -54,47 +58,46 @@ fun TeacherDashboardScreen(
             onClick = onManageEvents
         ),
         ManagementOption(
-            title = "Gestionar Aulas",
+            title = "Gestionar Cuestionarios",
             description = "Crea y asigna cuestionarios a los grados.",
             icon = Icons.Default.Quiz,
             onClick = onManageQuizzes
         )
     )
 
+    // Estructura visual de la pantalla.
     Scaffold(
         topBar = {
             TopAppBar(title = { Text("Panel del Profesor") })
         }
     ) { innerPadding ->
+        // Lista desplazable de opciones.
         LazyColumn(
-            modifier = Modifier
-                .padding(innerPadding)
-                .fillMaxSize(),
+            modifier = Modifier.padding(innerPadding).fillMaxSize(),
             contentPadding = PaddingValues(16.dp),
             verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
-            // 1. Muestra la tarjeta de alerta SÓLO si hay una alerta activa
+            // 1. Muestra la tarjeta de alerta SÓLO si hay una alerta activa.
             if (activeAlert != null) {
                 item {
                     AlertCard(onClick = onViewAlert)
                 }
             }
 
-            // 2. Muestra las tarjetas de gestión (UNA SOLA VEZ)
+            // 2. Muestra las tarjetas de gestión.
             items(managementOptions) { option ->
                 ManagementCard(option = option)
             }
         }
     }
 }
-
+// Composables auxiliares
+// Tarjeta reutilizable para cada opción de gestión.
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ManagementCard(option: ManagementOption) {
     Card(
-        modifier = Modifier
-            .fillMaxWidth()
-            .clickable(onClick = option.onClick), // Hacemos la tarjeta clickeable
+        modifier = Modifier.fillMaxWidth().clickable(onClick = option.onClick),
         elevation = CardDefaults.cardElevation(defaultElevation = 4.dp)
     ) {
         Row(
@@ -104,7 +107,7 @@ fun ManagementCard(option: ManagementOption) {
         ) {
             Icon(
                 imageVector = option.icon,
-                contentDescription = null, // El texto ya describe la acción
+                contentDescription = null,
                 modifier = Modifier.size(40.dp)
             )
             Column {
@@ -115,14 +118,13 @@ fun ManagementCard(option: ManagementOption) {
     }
 }
 
+// Tarjeta especial para mostrar la ALERTA DE PÁNICO.
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun AlertCard(onClick: () -> Unit) {
     Card(
-        modifier = Modifier
-            .fillMaxWidth()
-            .clickable(onClick = onClick),
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.errorContainer),
+        modifier = Modifier.fillMaxWidth().clickable(onClick = onClick),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.errorContainer), // Fondo de color suave de error
         elevation = CardDefaults.cardElevation(defaultElevation = 8.dp)
     ) {
         Row(
