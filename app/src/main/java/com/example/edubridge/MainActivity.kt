@@ -17,8 +17,8 @@ import com.example.edubridge.ui.auth.LoginScreen
 import com.example.edubridge.ui.student.StudentHomeScreen
 import com.example.edubridge.ui.teacher.TeacherDashboardScreen
 
-// NUEVOS IMPORTS para las pantallas del Profesor y Alumno
-import com.example.edubridge.ui.student.QuizSelectionScreen // Importación necesaria (asumiendo que ya creaste el archivo)
+// IMPORTS PARA LAS PANTALLAS DEL PROFESOR Y ALUMNO
+import com.example.edubridge.ui.student.QuizSelectionScreen
 import com.example.edubridge.ui.teacher.ManageQuizzesScreen
 import com.example.edubridge.ui.teacher.AlertMapScreen
 import com.example.edubridge.ui.teacher.ManageEventsScreen
@@ -27,17 +27,21 @@ import com.example.edubridge.ui.teacher.ManageLibraryScreen
 
 object Destinations {
     const val LOGIN_ROUTE = "login"
-    const val STUDENT_HOME_ROUTE = "student_home"
+    // Versión de 'main', que es la correcta para pasar el email
+    const val STUDENT_HOME_ROUTE = "student_home/{email}"
     const val TEACHER_DASHBOARD_ROUTE = "teacher_dashboard"
 
-    // RUTAS AÑADIDAS para la gestión del profesor (LUIS, ISAAC, MONTSÉ)
+    // Rutas de gestión del profesor
     const val MANAGE_LIBRARY_ROUTE = "manage_library"
     const val MANAGE_EVENTS_ROUTE = "manage_events"
-    const val MANAGE_QUIZZES_ROUTE = "manage_quizzes" // TAREA DE LUIS
-    const val ALERT_MAP_ROUTE = "alert_map" // TAREA DE LUIS
+    const val MANAGE_QUIZZES_ROUTE = "manage_quizzes"
+    const val ALERT_MAP_ROUTE = "alert_map"
 
-    // RUTA AÑADIDA PARA EL QUIZZ (con argumento de grado)
+    // Ruta para la selección de Quizz de la rama de Cuenca
     const val QUIZ_SELECTION_ROUTE = "quiz_selection/{grade}"
+
+    // Función de ayuda de 'main' para construir la ruta del alumno
+    fun studentHomeWithEmail(email: String) = "student_home/$email"
 }
 
 class MainActivity : ComponentActivity() {
@@ -58,26 +62,23 @@ class MainActivity : ComponentActivity() {
 
 @Composable
 fun AppNavigation() {
-    // El NavController es el cerebro de la navegación. Recuerda el estado y las rutas.
     val navController = rememberNavController()
 
-    // NavHost es el contenedor que intercambia las pantallas (destinos).
     NavHost(
         navController = navController,
-        startDestination = Destinations.LOGIN_ROUTE // La app siempre empieza en el Login.
+        startDestination = Destinations.LOGIN_ROUTE
     ) {
 
         // --- Pantalla de Inicio de Sesión ---
         composable(Destinations.LOGIN_ROUTE) {
             LoginScreen(
-                onStudentLogin = {
-                    // Navega a la pantalla de alumno y limpia la pila de navegación
-                    navController.navigate(Destinations.STUDENT_HOME_ROUTE) {
+                // Lógica de 'main': onStudentLogin ahora recibe el email
+                onStudentLogin = { email ->
+                    navController.navigate(Destinations.studentHomeWithEmail(email)) {
                         popUpTo(Destinations.LOGIN_ROUTE) { inclusive = true }
                     }
                 },
                 onTeacherLogin = {
-                    // Navega a la pantalla de profesor y limpia la pila.
                     navController.navigate(Destinations.TEACHER_DASHBOARD_ROUTE) {
                         popUpTo(Destinations.LOGIN_ROUTE) { inclusive = true }
                     }
@@ -86,52 +87,46 @@ fun AppNavigation() {
         }
 
         // --- Pantalla Principal del Alumno ---
-        composable(Destinations.STUDENT_HOME_ROUTE) {
-            StudentHomeScreen(
-                // Pasamos el NavController para que las pestañas puedan navegar (en este caso Aulas)
-                // Se utiliza una sobrecarga de ClassroomsScreen para pasar el NavController
-                navController = navController
-            )
+        // Lógica de 'main': Se define el argumento 'email' y se extrae
+        composable(
+            route = Destinations.STUDENT_HOME_ROUTE,
+            arguments = listOf(navArgument("email") { type = NavType.StringType })
+        ) { backStackEntry ->
+            val email = backStackEntry.arguments?.getString("email")
+            if (email != null) {
+                // Se lo pasamos a la pantalla del alumno
+                StudentHomeScreen(email = email)
+            } else {
+                // Medida de seguridad: si el email es nulo, vuelve al login
+                navController.popBackStack(Destinations.LOGIN_ROUTE, inclusive = false)
+            }
         }
 
-        // --- Panel de Control del Profesor (TeacherDashboard) ---
+        // --- Panel de Control del Profesor ---
         composable(Destinations.TEACHER_DASHBOARD_ROUTE) {
-            // CORRECCIÓN CLAVE: Pasamos los lambdas de navegación a la función
             TeacherDashboardScreen(
                 onManageLibrary = { navController.navigate(Destinations.MANAGE_LIBRARY_ROUTE) },
                 onManageEvents = { navController.navigate(Destinations.MANAGE_EVENTS_ROUTE) },
-                onManageQuizzes = { navController.navigate(Destinations.MANAGE_QUIZZES_ROUTE) }, // LUIS
-                onViewAlert = { navController.navigate(Destinations.ALERT_MAP_ROUTE) } // LUIS
+                onManageQuizzes = { navController.navigate(Destinations.MANAGE_QUIZZES_ROUTE) },
+                onViewAlert = { navController.navigate(Destinations.ALERT_MAP_ROUTE) }
             )
         }
 
         // --- Nuevas Pantallas de Gestión del Profesor ---
-
-        // TAREA DE LUIS: Gestión de Cuestionarios
         composable(Destinations.MANAGE_QUIZZES_ROUTE) {
             ManageQuizzesScreen()
         }
-
-        // TAREA DE LUIS: Mapa de Alertas de Pánico
         composable(Destinations.ALERT_MAP_ROUTE) {
-            // Pasamos una función para que la pantalla pueda volver al dashboard
             AlertMapScreen(onDismiss = { navController.popBackStack() })
         }
-
-        // Gestión de Biblioteca (ISAAC)
         composable(Destinations.MANAGE_LIBRARY_ROUTE) {
-            // Stub temporal, asume que ManageLibraryScreen existe
             ManageLibraryScreen()
         }
-
-        // Gestión de Eventos (MONTSÉ)
         composable(Destinations.MANAGE_EVENTS_ROUTE) {
-            // Stub temporal, asume que ManageEventsScreen existe
             ManageEventsScreen()
         }
 
-        // --- Nueva Pantalla de Selección de Quizz ---
-        // TAREA DE LUIS: Pantalla de selección de módulos después de elegir el grado
+        // --- Nueva Pantalla de Selección de Quizz (de la rama de Cuenca) ---
         composable(
             route = Destinations.QUIZ_SELECTION_ROUTE,
             arguments = listOf(navArgument("grade") { type = NavType.StringType })
