@@ -1,5 +1,8 @@
 package com.example.edubridge.data
 
+class PanicAlertRepository {
+}package com.example.edubridge.data
+
 import com.google.android.gms.maps.model.LatLng
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -23,4 +26,3 @@ object PanicAlertRepository {
         _activeAlert.value = null
     }
 }
-    

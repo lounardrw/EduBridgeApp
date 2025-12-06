@@ -40,6 +40,24 @@ android {
 }
 
 dependencies {
+
+    // Retrofit (Cliente HTTP)
+    implementation("com.squareup.retrofit2:retrofit:2.9.0")
+    // Converter de Gson (para manejar JSON)
+    implementation("com.squareup.retrofit2:converter-gson:2.9.0")
+
+    // OkHttp (Implementación del cliente HTTP)
+    implementation("com.squareup.okhttp3:okhttp:4.12.0")
+    // Logging Interceptor (útil para ver peticiones/respuestas en el logcat)
+    implementation("com.squareup.okhttp3:logging-interceptor:4.12.0")
+
+    // Kotlin Coroutines (Necesario para Retrofit en Compose/Kotlin)
+    implementation("org.jetbrains.kotlinx:kotlinx-coroutines-android:1.7.3")
+
+    // DEPENDENCIA AÑADIDA: Navegación de Compose
+    // Esta dependencia es crucial para NavHost, NavController, etc.
+    implementation("androidx.navigation:navigation-compose:2.8.0-beta01")
+
     // Mapas
     implementation("com.google.maps.android:maps-compose:6.0.0")
     implementation("com.google.android.gms:play-services-maps:19.0.0")
@@ -58,8 +76,8 @@ dependencies {
     implementation(libs.androidx.compose.ui.graphics)
     implementation(libs.androidx.compose.ui.tooling.preview)
     implementation(libs.androidx.compose.material3)
-    // implementation(libs.androidx.room.compiler.processing.testing) // <-- LÍNEA ELIMINADA
 
+    // Pruebas (Tests)
     testImplementation(libs.junit)
     androidTestImplementation(libs.androidx.junit)
     androidTestImplementation(libs.androidx.espresso.core)
@@ -67,10 +85,4 @@ dependencies {
     androidTestImplementation(libs.androidx.compose.ui.test.junit4)
     debugImplementation(libs.androidx.compose.ui.tooling)
     debugImplementation(libs.androidx.compose.ui.test.manifest)
-
-    implementation(libs.androidx.glance.appwidget)
-    implementation(libs.androidx.glance.material3)
-
-
-
 }

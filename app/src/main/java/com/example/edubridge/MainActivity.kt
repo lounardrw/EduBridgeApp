@@ -12,24 +12,35 @@ import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
-import androidx.navigation.navArgument
+import androidx.navigation.navArgument // Importación necesaria para pasar argumentos
 import com.example.edubridge.ui.auth.LoginScreen
 import com.example.edubridge.ui.student.StudentHomeScreen
-import com.example.edubridge.ui.teacher.*
+import com.example.edubridge.ui.teacher.TeacherDashboardScreen
 
-// Objeto para mantener las rutas centralizadas
+// IMPORTS PARA LAS PANTALLAS DEL PROFESOR Y ALUMNO
+import com.example.edubridge.ui.student.QuizSelectionScreen
+import com.example.edubridge.ui.teacher.ManageQuizzesScreen
+import com.example.edubridge.ui.teacher.AlertMapScreen
+import com.example.edubridge.ui.teacher.ManageEventsScreen
+import com.example.edubridge.ui.teacher.ManageLibraryScreen
+
+
 object Destinations {
     const val LOGIN_ROUTE = "login"
-    // 1. MODIFICAMOS LA RUTA DEL ALUMNO PARA ACEPTAR UN ARGUMENTO
+    // Versión de 'main', que es la correcta para pasar el email
     const val STUDENT_HOME_ROUTE = "student_home/{email}"
     const val TEACHER_DASHBOARD_ROUTE = "teacher_dashboard"
 
+    // Rutas de gestión del profesor
     const val MANAGE_LIBRARY_ROUTE = "manage_library"
     const val MANAGE_EVENTS_ROUTE = "manage_events"
     const val MANAGE_QUIZZES_ROUTE = "manage_quizzes"
     const val ALERT_MAP_ROUTE = "alert_map"
 
-    // 2. FUNCIÓN DE AYUDA PARA CONSTRUIR LA RUTA FÁCILMENTE
+    // Ruta para la selección de Quizz de la rama de Cuenca
+    const val QUIZ_SELECTION_ROUTE = "quiz_selection/{grade}"
+
+    // Función de ayuda de 'main' para construir la ruta del alumno
     fun studentHomeWithEmail(email: String) = "student_home/$email"
 }
 
@@ -57,11 +68,13 @@ fun AppNavigation() {
         navController = navController,
         startDestination = Destinations.LOGIN_ROUTE
     ) {
+
         // --- Pantalla de Inicio de Sesión ---
         composable(Destinations.LOGIN_ROUTE) {
             LoginScreen(
-                // 3. LA FIRMA DE onStudentLogin AHORA RECIBE EL EMAIL
-                onStudentLogin = { email -> navController.navigate(Destinations.studentHomeWithEmail(email)) {
+                // Lógica de 'main': onStudentLogin ahora recibe el email
+                onStudentLogin = { email ->
+                    navController.navigate(Destinations.studentHomeWithEmail(email)) {
                         popUpTo(Destinations.LOGIN_ROUTE) { inclusive = true }
                     }
                 },
@@ -74,23 +87,20 @@ fun AppNavigation() {
         }
 
         // --- Pantalla Principal del Alumno ---
-        // 4. DEFINIMOS EL ARGUMENTO Y SE LO PASAMOS A LA PANTALLA
+        // Lógica de 'main': Se define el argumento 'email' y se extrae
         composable(
             route = Destinations.STUDENT_HOME_ROUTE,
             arguments = listOf(navArgument("email") { type = NavType.StringType })
         ) { backStackEntry ->
-            // Extraemos el email de los argumentos de la ruta
             val email = backStackEntry.arguments?.getString("email")
-
             if (email != null) {
                 // Se lo pasamos a la pantalla del alumno
                 StudentHomeScreen(email = email)
             } else {
-                // Si por alguna razón el email es nulo, volvemos al login para evitar un crash
+                // Medida de seguridad: si el email es nulo, vuelve al login
                 navController.popBackStack(Destinations.LOGIN_ROUTE, inclusive = false)
             }
         }
-
 
         // --- Panel de Control del Profesor ---
         composable(Destinations.TEACHER_DASHBOARD_ROUTE) {
@@ -102,21 +112,27 @@ fun AppNavigation() {
             )
         }
 
+        // --- Nuevas Pantallas de Gestión del Profesor ---
+        composable(Destinations.MANAGE_QUIZZES_ROUTE) {
+            ManageQuizzesScreen()
+        }
+        composable(Destinations.ALERT_MAP_ROUTE) {
+            AlertMapScreen(onDismiss = { navController.popBackStack() })
+        }
         composable(Destinations.MANAGE_LIBRARY_ROUTE) {
             ManageLibraryScreen()
         }
         composable(Destinations.MANAGE_EVENTS_ROUTE) {
-            // Suponiendo que tienes una pantalla para esto
-            // ManageEventsScreen()
+            ManageEventsScreen()
         }
-        composable(Destinations.MANAGE_QUIZZES_ROUTE) {
-            // Suponiendo que tienes una pantalla para esto
-            // ManageQuizzesScreen()
-        }
-        composable(Destinations.ALERT_MAP_ROUTE) {
-            AlertMapScreen(
-                onDismiss = { navController.popBackStack() }
-            )
+
+        // --- Nueva Pantalla de Selección de Quizz (de la rama de Cuenca) ---
+        composable(
+            route = Destinations.QUIZ_SELECTION_ROUTE,
+            arguments = listOf(navArgument("grade") { type = NavType.StringType })
+        ) { backStackEntry ->
+            val grade = backStackEntry.arguments?.getString("grade") ?: "Grado Desconocido"
+            QuizSelectionScreen(grade = grade)
         }
     }
 }
