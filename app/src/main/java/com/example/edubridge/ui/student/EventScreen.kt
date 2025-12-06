@@ -27,14 +27,10 @@ import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
 import com.example.edubridge.R
 
-
-enum class EventType {
-    TODO, BECAS, AVISOS, PRÓXIMOS
-}
-
-@OptIn(ExperimentalMaterial3Api::class)
+// --- PASO CLAVE: AÑADIMOS EL PARÁMETRO MODIFIER ---
 @Composable
-fun EventsScreen() {
+fun EventsScreen(modifier: Modifier = Modifier) {
+    // Estado para guardar el evento seleccionado que se mostrará en el diálogo.
     var selectedEvent by remember { mutableStateOf<EventData?>(null) }
     var currentFilter by remember { mutableStateOf(EventType.TODO) }
 
@@ -45,27 +41,21 @@ fun EventsScreen() {
         )
     }
 
-    Column(modifier = Modifier.fillMaxSize()) {
-        Spacer(modifier = Modifier.height(56.dp))
-
-        Text(
-            text = "Eventos y Avisos",
-            style = MaterialTheme.typography.headlineSmall, // Un poco más pequeño
-            fontWeight = FontWeight.Bold,
-            modifier = Modifier.padding(start = 16.dp, top = 8.dp, end = 16.dp)
-        )
-        FilterChipGroup(
-            selectedFilter = currentFilter,
-            onFilterSelected = { newFilter -> currentFilter = newFilter }
-        )
-        Divider()
-        val allEvents = getSampleEvents()
-        val filteredEvents = remember(currentFilter) {
-            if (currentFilter == EventType.TODO) {
-                allEvents
-            } else {
-                allEvents.filter { it.type == currentFilter }
-            }
+    LazyColumn(
+        // --- Y LO APLICAMOS AQUÍ ---
+        modifier = modifier
+            .fillMaxSize()
+            .background(Color(0xFFF0F2F5)),
+        contentPadding = PaddingValues(16.dp),
+        verticalArrangement = Arrangement.spacedBy(20.dp)
+    ) {
+        item {
+            Text(
+                text = "Eventos y Avisos",
+                style = MaterialTheme.typography.headlineLarge,
+                fontWeight = FontWeight.Bold,
+                modifier = Modifier.padding(bottom = 8.dp)
+            )
         }
 
         LazyColumn(
@@ -99,33 +89,18 @@ fun EventsScreen() {
 }
 
 
-@OptIn(ExperimentalMaterial3Api::class)
-@Composable
-fun FilterChipGroup(selectedFilter: EventType, onFilterSelected: (EventType) -> Unit) {
-    LazyRow(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(vertical = 12.dp),
-        contentPadding = PaddingValues(horizontal = 16.dp),
-        horizontalArrangement = Arrangement.spacedBy(8.dp)
-    ) {
-        items(EventType.values()) { filter ->
-            FilterChip(
-                selected = selectedFilter == filter,
-                onClick = { onFilterSelected(filter) },
-                label = { Text(filter.name.lowercase().replaceFirstChar { it.uppercase() }) },
-                shape = RoundedCornerShape(16.dp),
-                modifier = Modifier.height(32.dp),
-                colors = FilterChipDefaults.filterChipColors(
-                    selectedContainerColor = MaterialTheme.colorScheme.primary,
-                    selectedLabelColor = Color.White
-                )
+        // Usamos items(events) directamente para mejor rendimiento
+        items(events.size) { index ->
+            val event = events[index]
+            EventCard(
+                event = event,
+                onCardClick = { selectedEvent = event }
             )
         }
     }
 }
 
-// ----- TARJETAS DE EVENTOS -----
+// El resto de tu archivo ya está perfecto, no necesita cambios.
 @Composable
 fun EventCard(event: EventData, onCardClick: () -> Unit) {
     Card(
@@ -265,6 +240,3 @@ fun getSampleEvents(): List<EventData> {
         )
     )
 }
-
-
-
