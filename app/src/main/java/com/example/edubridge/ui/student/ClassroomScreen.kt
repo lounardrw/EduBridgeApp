@@ -13,8 +13,8 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
-import androidx.navigation.NavController // Controla la navegación entre destinos.
-import com.example.edubridge.Destinations // Rutas centralizadas.
+import androidx.navigation.NavController
+import com.example.edubridge.Destinations
 
 // Los grados de Secundaria (los únicos que se usan en la app).
 val schoolGrades = listOf(
@@ -22,22 +22,23 @@ val schoolGrades = listOf(
     "2° Secundaria",
     "3° Secundaria"
 )
-
-// COMPOSABLE PRINCIPAL
-
-/**
- * Pantalla de Aulas Interactivas.
- * Muestra los grados escolares disponibles y permite la navegación al módulo de Quizz.
- * @param navController El controlador de navegación para cambiar de pantalla.
- */
 @Composable
-fun ClassroomsScreen(modifier: Modifier = Modifier) {
-    Box(
-        modifier = modifier.fillMaxSize(), // Es una buena práctica usar el modifier en el contenedor principal
-        contentAlignment = Alignment.Center
+fun ClassroomsScreen(modifier: Modifier = Modifier, navController: NavController) {
+    Column(
+        modifier = modifier.fillMaxSize().padding(16.dp),
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.Center
     ) {
-        Text(
-            text = "Aulas Interactivas (Cuenca)"
-        )
+        Text("Aulas Interactivas", style = MaterialTheme.typography.headlineMedium)
+        Spacer(Modifier.height(16.dp))
+
+        // Ejemplo: Un botón para navegar al Quizz de 5to Grado
+        Button(onClick = {
+            // ¡AQUÍ ESTÁ LA LÓGICA DE NAVEGACIÓN QUE FALTABA!
+            val grade = "5to Grado"
+            navController.navigate("quiz_selection/$grade")
+        }) {
+            Text("Ir a Módulos de 5to Grado")
+        }
     }
 }

@@ -1,9 +1,8 @@
 package com.example.edubridge.ui.student
 
-// IMPORTACIONES COMBINADAS DE AMBAS RAMAS
 import com.example.edubridge.ui.student.EventsScreen
-import com.example.edubridge.ui.student.LibraryScreen // Asegúrate de tener este archivo
-import com.example.edubridge.ui.student.ClassroomsScreen // Y este también
+import com.example.edubridge.ui.student.LibraryScreen
+import com.example.edubridge.ui.student.ClassroomsScreen
 import android.Manifest
 import android.annotation.SuppressLint
 import android.util.Log
@@ -22,6 +21,7 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import androidx.navigation.NavController
 import com.example.edubridge.data.PanicAlertRepository
 import com.google.android.gms.location.LocationServices
 import com.google.android.gms.maps.model.LatLng
@@ -36,19 +36,14 @@ sealed class Screen(val route: String) {
     object Classrooms : Screen("classrooms")
 }
 
-// ==================================================================
-// PANTALLA PRINCIPAL DEL ALUMNO (Home) (Versión de 'main', es la correcta para tu arquitectura)
-// ==================================================================
-
 @OptIn(ExperimentalMaterial3Api::class)
 @SuppressLint("MissingPermission")
 @Composable
-fun StudentHomeScreen(email: String) {
+fun StudentHomeScreen(email: String, navController: NavController) {
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
     val fusedLocationClient = remember { LocationServices.getFusedLocationProviderClient(context) }
 
-    // --- ESTADOS DE LA UI ---
     val profileDrawerState = rememberDrawerState(initialValue = DrawerValue.Closed)
     var showSettingsSheet by remember { mutableStateOf(false) }
     var currentScreen: Screen by remember { mutableStateOf<Screen>(Screen.Library) }
@@ -59,12 +54,10 @@ fun StudentHomeScreen(email: String) {
         NavItem(label = "Aulas", icon = Icons.Default.School, screen = Screen.Classrooms)
     )
 
-    // Mecanismo para solicitar permisos de ubicación (GPS)
     val locationPermissionLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.RequestMultiplePermissions()
     ) { permissions ->
         if (permissions.getOrDefault(Manifest.permission.ACCESS_FINE_LOCATION, false)) {
-            // Permiso otorgado, obtener ubicación
             fusedLocationClient.lastLocation.addOnSuccessListener { location ->
                 if (location != null) {
                     val latLng = LatLng(location.latitude, location.longitude)
@@ -81,7 +74,7 @@ fun StudentHomeScreen(email: String) {
         }
     }
 
-    // --- ESTRUCTURA PRINCIPAL DE LA UI ---
+
     ModalNavigationDrawer(
         drawerState = profileDrawerState,
         gesturesEnabled = profileDrawerState.isOpen,
@@ -133,7 +126,9 @@ fun StudentHomeScreen(email: String) {
                         )
                     },
                     containerColor = MaterialTheme.colorScheme.error,
-                    modifier = Modifier.size(72.dp).padding(8.dp), // Estilo de Karen
+                    modifier = Modifier
+                        .size(72.dp)
+                        .padding(8.dp), // Estilo de Karen
                     shape = MaterialTheme.shapes.extraLarge      // Estilo de Karen
                 ) {
                     Icon(
@@ -149,7 +144,11 @@ fun StudentHomeScreen(email: String) {
                 // Las llamadas a las pantallas reales, como en 'main'
                 is Screen.Library -> LibraryScreen(modifier = modifier)
                 is Screen.Events -> EventsScreen(modifier = modifier)
-                is Screen.Classrooms -> ClassroomsScreen(modifier = modifier)
+                // Pasa el navController a la pantalla de Aulas
+                is Screen.Classrooms -> ClassroomsScreen(
+                    modifier = modifier,
+                    navController = navController // <-- PÁSALA AQUÍ
+                )
             }
         }
     }
@@ -160,39 +159,37 @@ fun StudentHomeScreen(email: String) {
     }
 }
 
-
-// ==================================================================
-// COMPOSABLES AUXILIARES (Combinamos lo mejor de ambos)
-// ==================================================================
-
-// Usamos la versión de 'main' que es más flexible
 @Composable
 fun StudentProfileDrawerContent(
     drawerState: DrawerState,
     email: String,
     modifier: Modifier = Modifier
-) {
-    val scope = rememberCoroutineScope()
-    Column(
-        modifier = modifier
-            .padding(16.dp)
-            .fillMaxSize()
-    ) {
-        Text("Perfil del Alumno", style = MaterialTheme.typography.headlineSmall)
-        Spacer(modifier = Modifier.height(16.dp))
-        Text("Correo: $email", style = MaterialTheme.typography.bodyLarge)
-        Spacer(modifier = Modifier.height(8.dp))
-        Text("Promedio: N/A", style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.primary)
-        Spacer(modifier = Modifier.height(16.dp))
-        Button(onClick = {
-            scope.launch { drawerState.close() }
-            // TODO: Lógica para abrir el diálogo de cambio de contraseña
-        }) {
-            Text("Actualizar Contraseña (Demo)")
+) {    val scope = rememberCoroutineScope()
+    // ENVUELVE TODO EN UN MODAL DRAWERSHEET
+    // Este componente ya tiene el color de fondo y la elevación correctos
+    ModalDrawerSheet(modifier = modifier) {
+        Column(
+            modifier = Modifier
+                .padding(16.dp)
+                .fillMaxSize()
+        ) {
+            Text("Perfil del Alumno", style = MaterialTheme.typography.headlineSmall)
+            Spacer(modifier = Modifier.height(16.dp))
+            Text("Correo: $email", style = MaterialTheme.typography.bodyLarge)
+            Spacer(modifier = Modifier.height(8.dp))
+            Text("Promedio: N/A", style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.primary)
+            Spacer(modifier = Modifier.height(16.dp))
+            Button(onClick = {
+                scope.launch { drawerState.close() }
+                // TODO: Lógica para abrir el diálogo de cambio de contraseña
+            }) {
+                Text("Actualizar Contraseña (Demo)")
+            }
+            Divider(Modifier.padding(vertical = 16.dp))
         }
-        Divider(Modifier.padding(vertical = 16.dp))
     }
 }
+
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -206,7 +203,9 @@ fun SettingsModalSheet(onDismiss: () -> Unit) {
                 Text(
                     "Opciones y Fichas",
                     style = MaterialTheme.typography.titleLarge,
-                    modifier = Modifier.padding(bottom = 8.dp).fillMaxWidth(),
+                    modifier = Modifier
+                        .padding(bottom = 8.dp)
+                        .fillMaxWidth(),
                     textAlign = TextAlign.Center // Centramos el título como en la rama de Karen
                 )
             }
@@ -215,7 +214,9 @@ fun SettingsModalSheet(onDismiss: () -> Unit) {
             item { SettingItem(title = "Contacto", description = "Teléfonos y horarios escolares.") }
             item { Spacer(modifier = Modifier.height(16.dp)) }
             item {
-                Button(onClick = onDismiss, modifier = Modifier.fillMaxWidth().padding(bottom = 32.dp)) {
+                Button(onClick = onDismiss, modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(bottom = 32.dp)) {
                     Text("Cerrar")
                 }
             }
@@ -225,7 +226,9 @@ fun SettingsModalSheet(onDismiss: () -> Unit) {
 
 @Composable
 fun SettingItem(title: String, description: String) {
-    Card(Modifier.fillMaxWidth().clickable { /* TODO: Lógica para abrir contenido detallado */ }) {
+    Card(Modifier
+        .fillMaxWidth()
+        .clickable { /* TODO: Lógica para abrir contenido detallado */ }) {
         Column(Modifier.padding(16.dp)) {
             Text(title, style = MaterialTheme.typography.titleMedium)
             Text(description, style = MaterialTheme.typography.bodySmall)

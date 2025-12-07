@@ -17,15 +17,13 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.unit.dp
-import com.example.edubridge.data.PanicAlertRepository // Repositorio para checar si hay alerta activa
+import com.example.edubridge.data.PanicAlertRepository
 
-// DEFINICIONES DE ESTRUCTURAS
-// Estructura de datos para definir los botones de gestión del profesor.
 data class ManagementOption(
     val title: String,
     val description: String,
     val icon: ImageVector,
-    val onClick: () -> Unit // Función para navegar cuando se presiona.
+    val onClick: () -> Unit
 )
 
 // PANTALLA PRINCIPAL
@@ -140,19 +138,4 @@ fun AlertCard(onClick: () -> Unit) {
         }
     }
 }
-import androidx.compose.runtime.collectAsState
-import androidx.compose.runtime.getValue
-import androidx.compose.ui.Alignment
-import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.vector.ImageVector
-import androidx.compose.ui.unit.dp
-import com.example.edubridge.data.PanicAlertRepository // Repositorio para checar si hay alerta activa
 
-// DEFINICIONES DE ESTRUCTURAS
-// Estructura de datos para definir los botones de gestión del profesor.
-data class ManagementOption(
-    val title: String,
-    val description: String,
-    val icon: ImageVector,
-    val onClick: () -> Unit // Función para navegar cuando se presiona.
-)

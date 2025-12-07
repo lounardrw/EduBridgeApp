@@ -94,8 +94,8 @@ fun AppNavigation() {
         ) { backStackEntry ->
             val email = backStackEntry.arguments?.getString("email")
             if (email != null) {
-                // Se lo pasamos a la pantalla del alumno
-                StudentHomeScreen(email = email)
+                // Ahora le pasamos el navController a StudentHomeScreen
+                StudentHomeScreen(email = email, navController = navController) // <-- ACTUALIZA ESTA LÍNEA
             } else {
                 // Medida de seguridad: si el email es nulo, vuelve al login
                 navController.popBackStack(Destinations.LOGIN_ROUTE, inclusive = false)
