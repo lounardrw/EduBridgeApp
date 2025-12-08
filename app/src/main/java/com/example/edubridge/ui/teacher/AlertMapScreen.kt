@@ -1,47 +1,67 @@
 package com.example.edubridge.ui.teacher
 
-import androidx.compose.foundation.layout.*
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.ArrowBack
-import androidx.compose.material3.*
+import android.annotation.SuppressLint
+import androidx.compose.foundation.layout.*import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
+import com.example.edubridge.data.PanicAlertRepository
+import com.google.android.gms.maps.model.CameraPosition
+import com.google.maps.android.compose.*
 
-/**
- * Mapa de Alertas de Pánico.
- * Esta pantalla muestra la ubicación del alumno en peligro en un mapa.
- */
+// Anotación para solucionar el error de TopAppBar
+@SuppressLint("UnrememberedMutableState")
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun AlertMapScreen(onDismiss: () -> Unit, modifier: Modifier = Modifier) {
+fun AlertMapScreen(onDismiss: () -> Unit) {
+    val alert by PanicAlertRepository.activeAlert.collectAsState()
+    val cameraPositionState = rememberCameraPositionState()
+
     Scaffold(
         topBar = {
-            TopAppBar(
-                title = { Text("Ubicación de Alerta Activa") },
-                navigationIcon = {
-                    // Botón para volver al dashboard del profesor.
-                    IconButton(onClick = onDismiss) {
-                        Icon(Icons.Default.ArrowBack, contentDescription = "Volver")
-                    }
-                }
-            )
+            TopAppBar(title = { Text("Alerta de Seguridad Activa") })
         }
-    ) { innerPadding ->
-        // Contenedor centrado que contendrá el mapa.
-        Box(
-            modifier = modifier
-                .padding(innerPadding)
-                .fillMaxSize()
-                .padding(16.dp),
-            contentAlignment = Alignment.Center
-        ) {
-            Text(
-                "MAPA DE ALERTA: Aquí se integrará el componente de Google Maps y la LatLng del repositorio (Tarea de Luis).",
-                style = MaterialTheme.typography.headlineSmall,
-                textAlign = androidx.compose.ui.text.style.TextAlign.Center
-            )
+    ) { padding ->
+        Box(modifier = Modifier.padding(padding).fillMaxSize()) {
+            if (alert != null) {
+                val currentAlert = alert!!
+
+                // Actualizar la posición de la cámara cuando la alerta cambia
+                cameraPositionState.position = CameraPosition.fromLatLngZoom(currentAlert.location, 15f)
+
+                GoogleMap(
+                    modifier = Modifier.fillMaxSize(),
+                    cameraPositionState = cameraPositionState
+                ) {
+                    // Marcador en la ubicación del alumno (CORRECCIÓN FINAL)
+                    Marker(
+                        // Se crea un MarkerState y se le pasa la posición
+                        state = MarkerState(position = currentAlert.location),
+                        title = "¡Alerta de ${currentAlert.studentName}!",
+                        snippet = "Ubicación de la emergencia"
+                    )
+                }
+
+                // Botón para descartar la alerta
+                Button(
+                    onClick = {
+                        PanicAlertRepository.clearAlert()
+                        onDismiss() // Regresa a la pantalla anterior
+                    },
+                    modifier = Modifier.align(Alignment.BottomCenter).padding(16.dp)
+                ) {
+                    Text("Marcar como Atendido y Cerrar")
+                }
+
+            } else {
+                // No hay alerta activa
+                Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                    Text("No hay alertas activas en este momento.")
+                }
+            }
         }
     }
 }
