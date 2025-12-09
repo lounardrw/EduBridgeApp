@@ -1,98 +1,141 @@
 package com.example.edubridge.ui.teacher
 
-import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.*
+import androidx.compose.material.icons.filled.Book
+import androidx.compose.material.icons.filled.CalendarToday
+import androidx.compose.material.icons.filled.Quiz
+import androidx.compose.material.icons.filled.Warning
 import androidx.compose.material3.*
-import androidx.compose.runtime.*
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.unit.dp
+import com.example.edubridge.data.PanicAlertRepository
 
-// 1. DEFINIMOS LAS PANTALLAS DE NAVEGACIÓN PARA EL PROFESOR
-sealed class TeacherScreen(val route: String, val title: String, val icon: ImageVector) {
-    object ManageLibrary : TeacherScreen("manage_library", "Biblioteca", Icons.Default.Book)
-    object ManageEvents : TeacherScreen("manage_events", "Eventos", Icons.Default.Event)
-    object ManageQuizzes : TeacherScreen("manage_quizzes", "Quizzes", Icons.Default.Quiz)
-    object AlertMap : TeacherScreen("alert_map", "Alertas", Icons.Default.NotificationImportant)
-}
-
-// Creamos la lista de pantallas para la barra de navegación
-private val screens = listOf(
-    TeacherScreen.ManageLibrary,
-    TeacherScreen.ManageEvents,
-    TeacherScreen.ManageQuizzes,
-    TeacherScreen.AlertMap
+data class ManagementOption(
+    val title: String,
+    val description: String,
+    val icon: ImageVector,
+    val onClick: () -> Unit
 )
+
+// PANTALLA PRINCIPAL
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun TeacherDashboardScreen(onLogout: () -> Unit) {
-    // 2. CREAMOS UNA VARIABLE PARA SABER EN QUÉ PANTALLA ESTAMOS
-    var currentScreen: TeacherScreen by remember { mutableStateOf(TeacherScreen.ManageLibrary) }
+fun TeacherDashboardScreen(
+    // Funciones de navegación para cada módulo (vienen desde MainActivity).
+    onManageLibrary: () -> Unit,
+    onManageEvents: () -> Unit,
+    onManageQuizzes: () -> Unit,
+    onViewAlert: () -> Unit
+) {
+    // Escucha el estado de alerta en tiempo real del repositorio.
+    // Si un alumno presiona el pánico, 'activeAlert' cambia y la UI se actualiza (recomposición).
+    val activeAlert by PanicAlertRepository.activeAlert.collectAsState(initial = null)
 
+    // Lista de opciones de gestión disponibles para el profesor.
+    val managementOptions = listOf(
+        ManagementOption(
+            title = "Gestionar Biblioteca",
+            description = "Sube, edita o elimina recursos PDF.",
+            icon = Icons.Default.Book,
+            onClick = onManageLibrary
+        ),
+        ManagementOption(
+            title = "Gestionar Eventos",
+            description = "Publica avisos y actualiza el calendario.",
+            icon = Icons.Default.CalendarToday,
+            onClick = onManageEvents
+        ),
+        ManagementOption(
+            title = "Gestionar Cuestionarios",
+            description = "Crea y asigna cuestionarios a los grados.",
+            icon = Icons.Default.Quiz,
+            onClick = onManageQuizzes
+        )
+    )
+
+    // Estructura visual de la pantalla.
     Scaffold(
         topBar = {
-            TopAppBar(
-                title = { Text(currentScreen.title) }, // El título cambia dinámicamente
-                actions = {
-                    // El botón de logout se mantiene
-                    IconButton(onClick = onLogout) {
-                        Icon(
-                            imageVector = Icons.Default.ExitToApp,
-                            contentDescription = "Cerrar Sesión"
-                        )
-                    }
-                }
-            )
-        },
-        bottomBar = {
-            // 3. CREAMOS LA BARRA DE NAVEGACIÓN INFERIOR
-            NavigationBar {
-                screens.forEach { screen ->
-                    NavigationBarItem(
-                        icon = { Icon(screen.icon, contentDescription = screen.title) },
-                        label = { Text(screen.title) },
-                        selected = currentScreen == screen,
-                        onClick = { currentScreen = screen } // Al hacer clic, cambiamos la pantalla
-                    )
-                }
-            }
+            TopAppBar(title = { Text("Panel del Profesor") })
         }
     ) { innerPadding ->
-        // 4. EL 'when' AHORA MUESTRA LA PANTALLA CORRECTA
-        val modifier = Modifier.padding(innerPadding)
-        when (currentScreen) {
-            is TeacherScreen.ManageLibrary -> ManageLibraryScreen(modifier)
-            is TeacherScreen.ManageEvents -> ManageEventsScreen(modifier)
-            is TeacherScreen.ManageQuizzes -> ManageQuizzesScreen(modifier)
-            is TeacherScreen.AlertMap -> AlertMapScreen(modifier)
+        // Lista desplazable de opciones.
+        LazyColumn(
+            modifier = Modifier.padding(innerPadding).fillMaxSize(),
+            contentPadding = PaddingValues(16.dp),
+            verticalArrangement = Arrangement.spacedBy(16.dp)
+        ) {
+            // 1. Muestra la tarjeta de alerta SÓLO si hay una alerta activa.
+            if (activeAlert != null) {
+                item {
+                    AlertCard(onClick = onViewAlert)
+                }
+            }
+
+            // 2. Muestra las tarjetas de gestión.
+            items(managementOptions) { option ->
+                ManagementCard(option = option)
+            }
+        }
+    }
+}
+// Composables auxiliares
+// Tarjeta reutilizable para cada opción de gestión.
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun ManagementCard(option: ManagementOption) {
+    Card(
+        modifier = Modifier.fillMaxWidth().clickable(onClick = option.onClick),
+        elevation = CardDefaults.cardElevation(defaultElevation = 4.dp)
+    ) {
+        Row(
+            modifier = Modifier.padding(16.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(16.dp)
+        ) {
+            Icon(
+                imageVector = option.icon,
+                contentDescription = null,
+                modifier = Modifier.size(40.dp)
+            )
+            Column {
+                Text(text = option.title, style = MaterialTheme.typography.titleLarge)
+                Text(text = option.description, style = MaterialTheme.typography.bodyMedium)
+            }
         }
     }
 }
 
-// --- PANTALLAS DE EJEMPLO PARA LAS SECCIONES DEL PROFESOR ---
-// Puedes mover estas funciones a sus propios archivos más adelante si lo deseas.
-
+// Tarjeta especial para mostrar la ALERTA DE PÁNICO.
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun ManageLibraryScreen(modifier: Modifier = Modifier) {
-    // Aquí irá el contenido para gestionar los libros (CRUD)
-    Text(text = "Panel de Gestión de Biblioteca", modifier = modifier)
+fun AlertCard(onClick: () -> Unit) {
+    Card(
+        modifier = Modifier.fillMaxWidth().clickable(onClick = onClick),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.errorContainer), // Fondo de color suave de error
+        elevation = CardDefaults.cardElevation(defaultElevation = 8.dp)
+    ) {
+        Row(
+            modifier = Modifier.padding(16.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(16.dp)
+        ) {
+            Icon(Icons.Default.Warning, contentDescription = null, modifier = Modifier.size(40.dp))
+            Column {
+                Text("¡ALERTA DE PÁNICO ACTIVA!", style = MaterialTheme.typography.titleLarge)
+                Text("Un alumno necesita ayuda. Haz clic para ver la ubicación.", style = MaterialTheme.typography.bodyMedium)
+            }
+        }
+    }
 }
 
-@Composable
-fun ManageEventsScreen(modifier: Modifier = Modifier) {
-    // Aquí irá el contenido para gestionar los eventos del calendario (CRUD)
-    Text(text = "Panel de Gestión de Eventos", modifier = modifier)
-}
-
-@Composable
-fun ManageQuizzesScreen(modifier: Modifier = Modifier) {
-    // Aquí irá el contenido para gestionar los quizzes (CRUD)
-    Text(text = "Panel de Gestión de Quizzes", modifier = modifier)
-}
-
-@Composable
-fun AlertMapScreen(modifier: Modifier = Modifier) {
-    // Aquí irá el contenido para visualizar y validar las alertas
-    Text(text = "Mapa de Alertas", modifier = modifier)
-}

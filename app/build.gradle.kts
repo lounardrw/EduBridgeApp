@@ -8,7 +8,7 @@ plugins {
 
 android {
     namespace = "com.example.edubridge"
-    compileSdk = 36
+    compileSdk = 36 // Versión avanzada
 
     defaultConfig {
         applicationId = "com.example.edubridge"
@@ -16,7 +16,6 @@ android {
         targetSdk = 36
         versionCode = 1
         versionName = "1.0"
-
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
 
@@ -42,11 +41,34 @@ android {
 }
 //Carla Xochitl Cristalinas, agregar las dependencias, SDK, retrofit
 dependencies {
+
+    // Retrofit (Cliente HTTP)
+    implementation("com.squareup.retrofit2:retrofit:2.9.0")
+    // Converter de Gson (para manejar JSON)
+    implementation("com.squareup.retrofit2:converter-gson:2.9.0")
+
+    // OkHttp (Implementación del cliente HTTP)
+    implementation("com.squareup.okhttp3:okhttp:4.12.0")
+    // Logging Interceptor (útil para ver peticiones/respuestas en el logcat)
+    implementation("com.squareup.okhttp3:logging-interceptor:4.12.0")
+
+    // Kotlin Coroutines (Necesario para Retrofit en Compose/Kotlin)
+    implementation("org.jetbrains.kotlinx:kotlinx-coroutines-android:1.7.3")
+
+    // DEPENDENCIA AÑADIDA: Navegación de Compose
+    // Esta dependencia es crucial para NavHost, NavController, etc.
+    implementation("androidx.navigation:navigation-compose:2.8.0-beta01")
+
+    // Mapas
     implementation("com.google.maps.android:maps-compose:6.0.0")
     implementation("com.google.android.gms:play-services-maps:19.0.0")
     implementation("com.google.android.gms:play-services-location:21.3.0")
     implementation("androidx.compose.material:material-icons-extended-android:1.6.8")
+
+    // Navegación
     implementation("androidx.navigation:navigation-compose:2.8.0-beta01")
+
+    // Core Compose
     implementation(libs.androidx.core.ktx)
     implementation(libs.androidx.lifecycle.runtime.ktx)
     implementation(libs.androidx.activity.compose)
@@ -55,6 +77,8 @@ dependencies {
     implementation(libs.androidx.compose.ui.graphics)
     implementation(libs.androidx.compose.ui.tooling.preview)
     implementation(libs.androidx.compose.material3)
+
+    // Pruebas (Tests)
     testImplementation(libs.junit)
     androidTestImplementation(libs.androidx.junit)
     androidTestImplementation(libs.androidx.espresso.core)

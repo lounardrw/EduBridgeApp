@@ -15,11 +15,10 @@ object PanicAlertRepository {
 
     fun triggerAlert(studentName: String, location: LatLng) {
         _activeAlert.value = PanicAlert(studentName = studentName, location = location)
-        // Aquí, en una app real, enviarías la notificación Push al backend.
+        // In a real app, you would send the Push notification to the backend here.
     }
 
     fun clearAlert() {
         _activeAlert.value = null
     }
 }
-    
