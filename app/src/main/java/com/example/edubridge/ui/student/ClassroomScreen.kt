@@ -14,7 +14,6 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavController // Controla la navegación entre destinos.
-import com.example.edubridge.Destinations // Rutas centralizadas.
 
 // ====================================================================
 // DATOS ESTATICOS
@@ -33,7 +32,7 @@ val schoolGrades = listOf(
 
 /**
  * Pantalla de Aulas Interactivas (Luis).
- * Muestra los grados escolares disponibles y permite la navegación al módulo de Quizz.
+ * Muestra los grados escolares disponibles.
  * @param navController El controlador de navegación para cambiar de pantalla.
  */
 @Composable
@@ -63,8 +62,7 @@ fun ClassroomsScreen(modifier: Modifier = Modifier, navController: NavController
                     grade = grade,
                     onClick = {
                         // ACCIÓN CLAVE: Navegación al QuizSelectionScreen.
-                        // Se usa la URL definida en MainActivity (quiz_selection/{grade})
-                        // y se reemplaza {grade} por el valor real (ej: "1° Secundaria").
+                        // Se usa la URL que acepta el argumento de grado.
                         navController.navigate("quiz_selection/$grade")
                     }
                 )
