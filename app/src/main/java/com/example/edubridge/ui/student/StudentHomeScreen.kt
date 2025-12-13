@@ -64,6 +64,7 @@ fun StudentHomeScreen(email: String, navController: NavController) {
                     Log.d("PanicButton", "Ubicación obtenida: $latLng")
                     PanicAlertRepository.triggerAlert(email, latLng) // Usamos el email real
                     Toast.makeText(context, "¡Alerta enviada!", Toast.LENGTH_SHORT).show()
+
                 } else {
                     Toast.makeText(context, "No se pudo obtener la ubicación.", Toast.LENGTH_SHORT).show()
                 }

@@ -24,7 +24,7 @@ import com.example.edubridge.data.SessionManager
 
 @Composable
 fun LoginScreen(
-    onStudentLogin: (String) -> Unit,   // ⬅️ AHORA RECIBE EMAIL
+    onStudentLogin: (String) -> Unit,   // AHORA RECIBE EMAIL
     onTeacherLogin: () -> Unit,
     vm: LoginViewModel = viewModel()
 ) {
@@ -32,6 +32,7 @@ fun LoginScreen(
     val ctx = LocalContext.current
     val session = remember { SessionManager(ctx) }
 
+    
     // ─────────── LÓGICA DE LOGIN ───────────
     LaunchedEffect(uiState.user) {
         uiState.user?.let { u ->
@@ -44,7 +45,7 @@ fun LoginScreen(
             )
 
             when (u.rol) {
-                "ALUMNO" -> onStudentLogin(u.correo ?: "")   // ⬅️ AHORA SÍ MANDAMOS EMAIL
+                "ALUMNO" -> onStudentLogin(u.correo ?: "")   // AHORA SÍ MANDAMOS EMAIL
                 "PROFESOR" -> onTeacherLogin()
             }
         }
@@ -138,11 +139,8 @@ fun LoginScreen(
                                     contentDescription = "Mostrar contraseña"
                                 )
                             }
-                        }
-                    )
-
+                        } )
                     Spacer(Modifier.height(24.dp))
-
                     // BOTÓN DE LOGIN
                     Button(
                         onClick = { vm.login(email.trim(), pass) },
@@ -161,7 +159,6 @@ fun LoginScreen(
                             Text("INICIAR SESIÓN", fontWeight = FontWeight.Bold)
                         }
                     }
-
                     // ERROR
                     uiState.error?.let {
                         Spacer(Modifier.height(12.dp))
