@@ -144,7 +144,7 @@ fun StudentHomeScreen(email: String, navController: NavController) {
             when (currentScreen) {
                 // Las llamadas a las pantallas reales, como en 'main'
                 is Screen.Library -> LibraryScreen(modifier = modifier)
-                is Screen.Events -> EventsScreen(modifier = modifier)
+                is Screen.Events -> StudentEventsRoute()
                 // Pasa el navController a la pantalla de Aulas
                 is Screen.Classrooms -> ClassroomsScreen(
                     modifier = modifier,
