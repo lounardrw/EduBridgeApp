@@ -37,7 +37,7 @@ enum class EventType(val displayName: String) {
 @Composable
 fun EventsScreen(
     modifier: Modifier = Modifier,
-    events: List<EventData> // 👈 AHORA LA LISTA VIENE DE FUERA
+    events: List<EventData> //  AHORA LA LISTA VIENE DE FUERA
 ) {
     var selectedEvent by remember { mutableStateOf<EventData?>(null) }
     var currentFilter by remember { mutableStateOf(EventType.TODO) }

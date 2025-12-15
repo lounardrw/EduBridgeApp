@@ -14,6 +14,7 @@ import retrofit2.http.GET
 import retrofit2.http.PUT
 import retrofit2.http.DELETE
 import retrofit2.http.HTTP
+import retrofit2.http.Path
 import retrofit2.http.Query
 interface ApiService {
 
@@ -25,22 +26,22 @@ interface ApiService {
 
     suspend fun getEventos(): EventResponse
 
-
-    @POST("eventos/create.php")
+    @POST("events/create.php")
         suspend fun createEvent(
             @Body request: EventRequest
         ): Response<EventResponse>
 
-        @PUT("eventos/update.php")
+        @PUT("events/update.php")
         suspend fun updateEvent(
             @Body request: EventRequest
         ): Response<EventResponse>
 
-        @HTTP(method = "DELETE", path = "eventos/delete.php", hasBody = true)
-        suspend fun deleteEvent(
-            @Body request: Map<String, Int>
-        ): Response<EventResponse>
-    }
+    @HTTP(method = "DELETE", path = "events/delete.php", hasBody = true)
+    suspend fun deleteEvent(@Body body: Map<String, Int>)
+
+
+
+}
 
 
 
