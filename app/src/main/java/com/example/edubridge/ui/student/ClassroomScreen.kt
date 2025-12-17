@@ -13,11 +13,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
-import androidx.navigation.NavController // Controla la navegación entre destinos.
-
-// ====================================================================
-// DATOS ESTATICOS
-// ====================================================================
+import androidx.navigation.NavController
 
 // Los grados de Secundaria (los únicos que se usan en la app).
 val schoolGrades = listOf(
@@ -26,12 +22,8 @@ val schoolGrades = listOf(
     "3° Secundaria"
 )
 
-// ====================================================================
-// COMPOSABLE PRINCIPAL
-// ====================================================================
-
 /**
- * Pantalla de Aulas Interactivas (Luis).
+ * Pantalla de Aulas Interactivas (Carla Xochitl).
  * Muestra los grados escolares disponibles.
  * @param navController El controlador de navegación para cambiar de pantalla.
  */
@@ -71,13 +63,7 @@ fun ClassroomsScreen(modifier: Modifier = Modifier, navController: NavController
     }
 }
 
-// ====================================================================
-// COMPOSABLES AUXILIARES
-// ====================================================================
-
-/**
- * Tarjeta interactiva para representar cada grado escolar.
- */
+//Tarjeta interactiva para representar cada grado escolar.
 @Composable
 fun GradeCard(grade: String, onClick: () -> Unit) {
     Card(
@@ -121,3 +107,4 @@ fun GradeCard(grade: String, onClick: () -> Unit) {
         }
     }
 }
+
