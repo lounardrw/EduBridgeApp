@@ -4,43 +4,64 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Add
-import androidx.compose.material.icons.filled.Delete
-import androidx.compose.material.icons.filled.Edit
+import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
-import com.example.edubridge.R
+import com.example.edubridge.ui.student.EventModuleUI
 import com.example.edubridge.ui.student.EventType
-import kotlinx.coroutines.launch
+import java.text.SimpleDateFormat
+import java.util.Date
+import java.util.Locale
+import java.util.UUID
+
+//Obtiene la fecha actual en formato YYYY-MM-DD.
+private fun getTodayDateString(): String {
+    // Usamos el formato ISO de fecha para MySQL
+    val formatter = SimpleDateFormat("yyyy-MM-dd", Locale.US)
+    return formatter.format(Date())
+}
+
+// PANTALLA PRINCIPAL
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun ManageEventsScreen(
-    viewModel: TeacherEventsViewModel = viewModel()
-) {
+fun ManageEventsScreen(viewModel: TeacherEventsViewModel = viewModel()) {
+    // Escuchar la lista de eventos desde el ViewModel
     val events by viewModel.events.collectAsState()
     val loading by viewModel.loading.collectAsState()
     val error by viewModel.error.collectAsState()
 
-    var showAddOrEditDialog by remember { mutableStateOf(false) }
-    var eventToEdit by remember { mutableStateOf<EventData?>(null) }
-    var eventToDelete by remember { mutableStateOf<EventData?>(null) }
+    //Capturamos el color Primary AQUI, en el contexto @Composable
+    val primaryColor = MaterialTheme.colorScheme.primary
 
-    val scope = rememberCoroutineScope()
+    var showAddOrEditDialog by remember { mutableStateOf(false) }
+    var eventToEdit by remember { mutableStateOf<EventModuleUI?>(null) }
+    var eventToDelete by remember { mutableStateOf<EventModuleUI?>(null) }
 
     Scaffold(
-        topBar = { TopAppBar(title = { Text("Gestionar Eventos y Avisos") }) },
+        topBar = {
+            TopAppBar(
+                title = { Text("Gestionar Eventos y Anuncios") },
+                colors = TopAppBarDefaults.topAppBarColors(
+                    containerColor = MaterialTheme.colorScheme.primary,
+                    titleContentColor = MaterialTheme.colorScheme.onPrimary
+                )
+            )
+        },
         floatingActionButton = {
-            FloatingActionButton(onClick = {
-                eventToEdit = null
-                showAddOrEditDialog = true
-            }) {
-                Icon(Icons.Default.Add, contentDescription = "Agregar Evento")
+            FloatingActionButton(
+                onClick = {
+                    eventToEdit = null
+                    showAddOrEditDialog = true
+                },
+                containerColor = MaterialTheme.colorScheme.secondary
+            ) {
+                Icon(Icons.Filled.Add, contentDescription = "Agregar Evento", tint = MaterialTheme.colorScheme.onSecondary)
             }
         }
     ) { paddingValues ->
@@ -51,9 +72,9 @@ fun ManageEventsScreen(
             contentAlignment = Alignment.Center
         ) {
             when {
-                loading -> CircularProgressIndicator()
-                error != null -> Text(text = error ?: "Error desconocido")
-                events.isEmpty() -> Text("No hay eventos. ¡Agrega uno nuevo!")
+                loading && events.isEmpty() -> CircularProgressIndicator()
+                error != null -> Text("ERROR: $error", color = MaterialTheme.colorScheme.error)
+                events.isEmpty() -> Text("No hay eventos ni anuncios. ¡Agrega uno nuevo!")
                 else -> {
                     LazyColumn(
                         modifier = Modifier.fillMaxSize(),
@@ -76,53 +97,48 @@ fun ManageEventsScreen(
         }
     }
 
-    // --- Agregar / Editar ---
     if (showAddOrEditDialog) {
         AddOrEditEventDialog(
             event = eventToEdit,
             onDismiss = { showAddOrEditDialog = false },
-            onEventConfirm = { title, description ->
-                val eventData = if (eventToEdit == null) {
-                    EventData(
-                        id = 0, // id temporal para crear
+            onEventConfirm = { title, description, date ->
+                if (eventToEdit == null) {
+                    // CREAR NUEVO
+                    val newEvent = EventModuleUI(
+                        id = 0, // ID 0 para que MySQL lo genere
                         title = title,
                         description = description,
                         longDescription = description,
-                        date = "2025-12-14",
-                        categoryColor = Color.Gray,
-                        imageResId = R.drawable.evento_futbol,
-                        type = EventType.TODO
+                        date = date,
+                        categoryColor = primaryColor,
+                        type = EventType.AVISOS
                     )
+                    viewModel.addEvent(newEvent) // Llamada al Web Service
                 } else {
-                    eventToEdit!!.copy(
+                    // EDITAR EXISTENTE
+                    val updatedEvent = eventToEdit!!.copy(
                         title = title,
                         description = description,
-                        longDescription = description
+                        longDescription = description,
+                        date = date
                     )
+                    viewModel.updateEvent(updatedEvent) // Llamada al Web Service
                 }
-
-                scope.launch {
-                    if (eventToEdit == null) viewModel.addEvent(eventData) { showAddOrEditDialog = false }
-                    else viewModel.updateEvent(eventData) { showAddOrEditDialog = false }
-                }
+                showAddOrEditDialog = false
             }
         )
     }
 
-    // --- Confirmar eliminación ---
-    // --- Confirmar eliminación ---
     eventToDelete?.let { event ->
         AlertDialog(
             onDismissRequest = { eventToDelete = null },
             title = { Text("Confirmar Eliminación") },
-            text = { Text("¿Deseas eliminar '${event.title}'?") },
+            text = { Text("¿Estás seguro de que deseas eliminar el evento '${event.title}'?") },
             confirmButton = {
                 Button(
                     onClick = {
-                        scope.launch {
-                            viewModel.deleteEvent(event.id) { eventToDelete = null }
-                        }
-
+                        viewModel.deleteEvent(event.id) // Llamada al Web Service
+                        eventToDelete = null
                     },
                     colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.error)
                 ) {
@@ -130,46 +146,87 @@ fun ManageEventsScreen(
                 }
             },
             dismissButton = {
-                TextButton(onClick = { eventToDelete = null }) { Text("Cancelar") }
+                TextButton(onClick = { eventToDelete = null }) {
+                    Text("Cancelar")
+                }
             }
         )
     }
-
 }
 
+//La tarjeta ahora usa EventModuleUI
 @Composable
-fun EventCard(event: EventData, onEditClick: () -> Unit, onDeleteClick: () -> Unit) {
+fun EventCard(event: EventModuleUI, onEditClick: () -> Unit, onDeleteClick: () -> Unit) {
     Card(
         modifier = Modifier.fillMaxWidth(),
-        elevation = CardDefaults.cardElevation(4.dp)
+        elevation = CardDefaults.cardElevation(defaultElevation = 4.dp),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)
     ) {
-        Column(modifier = Modifier.padding(16.dp)) {
-            Text(event.title, style = MaterialTheme.typography.titleLarge)
-            Text(event.description, style = MaterialTheme.typography.bodyMedium)
-            Row(
-                horizontalArrangement = Arrangement.End,
-                modifier = Modifier.fillMaxWidth()
-            ) {
-                IconButton(onClick = onEditClick) { Icon(Icons.Default.Edit, contentDescription = "Editar") }
-                IconButton(onClick = onDeleteClick) { Icon(Icons.Default.Delete, contentDescription = "Eliminar") }
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(16.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Column(modifier = Modifier.weight(1f)) {
+                Text(
+                    text = event.title,
+                    style = MaterialTheme.typography.titleLarge,
+                    fontWeight = FontWeight.Bold
+                )
+                Spacer(modifier = Modifier.height(4.dp))
+                // Mostrar la fecha del evento
+                Text(
+                    text = "Fecha: ${event.date}",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.primary
+                )
+                Text(
+                    text = event.description,
+                    style = MaterialTheme.typography.bodyMedium
+                )
+            }
+            IconButton(onClick = onEditClick) {
+                Icon(
+                    Icons.Default.Edit,
+                    contentDescription = "Editar Evento",
+                    tint = MaterialTheme.colorScheme.primary
+                )
+            }
+            IconButton(onClick = onDeleteClick) {
+                Icon(
+                    Icons.Default.Delete,
+                    contentDescription = "Eliminar Evento",
+                    tint = MaterialTheme.colorScheme.error
+                )
             }
         }
     }
 }
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun AddOrEditEventDialog(
-    event: EventData?,
+    event: EventModuleUI?,
     onDismiss: () -> Unit,
-    onEventConfirm: (String, String) -> Unit
+    onEventConfirm: (title: String, description: String, date: String) -> Unit
 ) {
     var title by remember { mutableStateOf(event?.title ?: "") }
     var description by remember { mutableStateOf(event?.description ?: "") }
+    var dateString by remember { mutableStateOf(event?.date ?: getTodayDateString()) }
     var isTitleError by remember { mutableStateOf(false) }
+
+    LaunchedEffect(event) {
+        if (event != null) {
+            title = event.title
+            description = event.description
+            dateString = event.date
+        }
+    }
 
     AlertDialog(
         onDismissRequest = onDismiss,
-        title = { Text(if (event == null) "Nuevo Evento" else "Editar Evento") },
+        title = { Text(if (event == null) "Nuevo Evento o Anuncio" else "Editar Evento") },
         text = {
             Column {
                 OutlinedTextField(
@@ -182,21 +239,41 @@ fun AddOrEditEventDialog(
                     singleLine = true,
                     isError = isTitleError
                 )
-                if (isTitleError) Text("El título es obligatorio", color = MaterialTheme.colorScheme.error)
+                if (isTitleError) {
+                    Text("El título es obligatorio", color = MaterialTheme.colorScheme.error, style = MaterialTheme.typography.labelSmall)
+                }
+                Spacer(modifier = Modifier.height(16.dp))
                 OutlinedTextField(
                     value = description,
                     onValueChange = { description = it },
                     label = { Text("Descripción") },
                     modifier = Modifier.height(100.dp)
                 )
+                Spacer(modifier = Modifier.height(16.dp))
+                // CAMPO DE FECHA
+                OutlinedTextField(
+                    value = dateString,
+                    onValueChange = { dateString = it },
+                    label = { Text("Fecha (YYYY-MM-DD)") },
+                    singleLine = true,
+                )
             }
         },
         confirmButton = {
             Button(onClick = {
-                if (title.isNotBlank()) onEventConfirm(title, description)
-                else isTitleError = true
-            }) { Text("Guardar") }
+                if (title.isNotBlank()) {
+                    onEventConfirm(title, description, dateString)
+                } else {
+                    isTitleError = true
+                }
+            }) {
+                Text("Guardar")
+            }
         },
-        dismissButton = { TextButton(onClick = onDismiss) { Text("Cancelar") } }
+        dismissButton = {
+            TextButton(onClick = onDismiss) {
+                Text("Cancelar")
+            }
+        }
     )
 }
