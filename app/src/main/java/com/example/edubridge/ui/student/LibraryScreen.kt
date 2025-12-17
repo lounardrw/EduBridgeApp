@@ -18,7 +18,6 @@ import androidx.compose.ui.platform.LocalUriHandler
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
-import com.example.edubridge.data.Resource
 import com.example.edubridge.ui.LibraryViewModel
 
 @OptIn(ExperimentalMaterial3Api::class)
