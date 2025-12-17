@@ -1,26 +1,21 @@
 package com.example.edubridge.ui.student
+
 import androidx.compose.foundation.layout.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
 import androidx.lifecycle.viewmodel.compose.viewModel
 
 @Composable
 fun StudentEventsRoute(
-    viewModel: StudentEventsViewModel = viewModel()
+    viewModel: EventViewModel = viewModel()
 ) {
-    val events by viewModel.events.collectAsState()
-    val loading by viewModel.loading.collectAsState()
-    val error by viewModel.error.collectAsState()
-
-    LaunchedEffect(Unit) {
-        viewModel.loadEvents()
-    }
+    // Escuchamos el estado unificado
+    val uiState by viewModel.uiState.collectAsState()
 
     when {
-        loading -> {
+        uiState.loading && uiState.events.isEmpty() -> {
             Box(
                 modifier = Modifier.fillMaxSize(),
                 contentAlignment = Alignment.Center
@@ -28,21 +23,13 @@ fun StudentEventsRoute(
                 CircularProgressIndicator()
             }
         }
-
-        error != null -> {
-            Box(
-                modifier = Modifier.fillMaxSize(),
-                contentAlignment = Alignment.Center
-            ) {
-                Text(
-                    text = error ?: "Error",
-                    color = Color.Red
-                )
-            }
+        uiState.error != null -> {
+            // Pasamos el control al EventsScreen para mostrar el error sobre la lista
+            EventsScreen(viewModel = viewModel)
         }
-
         else -> {
-            EventsScreen(events = events)
+            // Pasamos el ViewModel directamente al Composable de la pantalla
+            EventsScreen(viewModel = viewModel)
         }
     }
 }
