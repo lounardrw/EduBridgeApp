@@ -10,8 +10,6 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Check
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -25,31 +23,31 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
 import com.example.edubridge.R
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Check
+import androidx.lifecycle.viewmodel.compose.viewModel
 
-// ----- ENUM PARA LOS FILTROS -----
-enum class EventType(val displayName: String) {
-    TODO("Todo"),
-    PRÓXIMOS("Próximos"),
-    BECAS("Becas"),
-    AVISOS("Avisos")
-}
-
+/**
+ * La firma de la función ahora recibe el ViewModel
+ * para acceder directamente al estado unificado.
+ */
 @Composable
-fun EventsScreen(
-    modifier: Modifier = Modifier,
-    events: List<EventData> //  AHORA LA LISTA VIENE DE FUERA
-) {
-    var selectedEvent by remember { mutableStateOf<EventData?>(null) }
-    var currentFilter by remember { mutableStateOf(EventType.TODO) }
+fun EventsScreen(modifier: Modifier = Modifier, viewModel: EventViewModel = viewModel()) {
+    // ESTADOS
+    // Ahora obtenemos el estado de la UI desde el ViewModel
+    val uiState by viewModel.uiState.collectAsState()
+    var selectedEvent by remember { mutableStateOf<EventModuleUI?>(null) }
 
-    val filteredEvents = remember(currentFilter, events) {
-        if (currentFilter == EventType.TODO) {
-            events
+    //LÓGICA DE FILTRADO
+    val filteredEvents = remember(uiState.events, uiState.currentFilter) {
+        if (uiState.currentFilter == EventType.TODO) {
+            uiState.events
         } else {
-            events.filter { it.type == currentFilter }
+            uiState.events.filter { it.type == uiState.currentFilter }
         }
     }
 
+    //DIÁLOGO DE DETALLE
     selectedEvent?.let { event ->
         EventDetailDialog(
             event = event,
@@ -57,6 +55,7 @@ fun EventsScreen(
         )
     }
 
+    //ESTRUCTURA DE LA PANTALLA
     LazyColumn(
         modifier = modifier
             .fillMaxSize()
@@ -64,22 +63,32 @@ fun EventsScreen(
         contentPadding = PaddingValues(16.dp),
         verticalArrangement = Arrangement.spacedBy(16.dp)
     ) {
+        //Título
         item {
             Text(
                 text = "Eventos y Avisos",
                 style = MaterialTheme.typography.headlineLarge,
-                fontWeight = FontWeight.Bold
+                fontWeight = FontWeight.Bold,
             )
+            // Mostrar Error de Red
+            uiState.error?.let {
+                Text(it, color = MaterialTheme.colorScheme.error, modifier = Modifier.padding(top = 8.dp))
+            }
+            if (uiState.loading) {
+                LinearProgressIndicator(modifier = Modifier.fillMaxWidth().padding(top = 8.dp))
+            }
         }
 
+        //Fila de Filtros
         item {
             FilterChips(
-                selectedType = currentFilter,
-                onFilterChange = { currentFilter = it }
+                selectedType = uiState.currentFilter,
+                onFilterChange = { newFilter -> viewModel.filterEvents(newFilter) }
             )
         }
 
-        if (filteredEvents.isEmpty()) {
+        //Lista de Eventos Filtrados
+        if (filteredEvents.isEmpty() && !uiState.loading) {
             item {
                 Text(
                     text = "No hay eventos en esta categoría.",
@@ -87,11 +96,12 @@ fun EventsScreen(
                         .fillMaxWidth()
                         .padding(top = 50.dp),
                     textAlign = TextAlign.Center,
-                    color = Color.Gray
+                    color = Color.Gray,
+                    style = MaterialTheme.typography.bodyLarge
                 )
             }
         } else {
-            items(filteredEvents) { event ->
+            items(filteredEvents, key = { it.id }) { event ->
                 EventCard(
                     event = event,
                     onCardClick = { selectedEvent = event }
@@ -104,15 +114,21 @@ fun EventsScreen(
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun FilterChips(selectedType: EventType, onFilterChange: (EventType) -> Unit) {
-    LazyRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-        items(EventType.values()) { type ->
+    LazyRow(
+        horizontalArrangement = Arrangement.spacedBy(8.dp)
+    ) {
+        items(EventType.values()) { eventType ->
             FilterChip(
-                selected = selectedType == type,
-                onClick = { onFilterChange(type) },
-                label = { Text(type.displayName) },
+                selected = selectedType == eventType,
+                onClick = { onFilterChange(eventType) },
+                label = { Text(eventType.displayName) },
                 leadingIcon = {
-                    if (selectedType == type) {
-                        Icon(Icons.Default.Check, contentDescription = null)
+                    if (selectedType == eventType) {
+                        Icon(
+                            imageVector = Icons.Default.Check,
+                            contentDescription = "Seleccionado",
+                            modifier = Modifier.size(FilterChipDefaults.IconSize)
+                        )
                     }
                 }
             )
@@ -120,44 +136,54 @@ fun FilterChips(selectedType: EventType, onFilterChange: (EventType) -> Unit) {
     }
 }
 
+
 @Composable
-fun EventCard(event: EventData, onCardClick: () -> Unit) {
+fun EventCard(event: EventModuleUI, onCardClick: () -> Unit) {
+    val imageResId = R.drawable.ic_launcher_foreground
+
     Card(
         modifier = Modifier
             .fillMaxWidth()
             .clickable(onClick = onCardClick),
-        elevation = CardDefaults.cardElevation(4.dp),
-        shape = RoundedCornerShape(12.dp)
+        elevation = CardDefaults.cardElevation(defaultElevation = 4.dp),
+        shape = RoundedCornerShape(12.dp),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
     ) {
         Column {
             Image(
-                painter = painterResource(id = event.imageResId),
-                contentDescription = null,
+                painter = painterResource(id = imageResId),
+                contentDescription = "Cartel del evento: ${event.title}",
                 modifier = Modifier
                     .fillMaxWidth()
                     .height(110.dp),
                 contentScale = ContentScale.Crop
             )
 
-            Row(modifier = Modifier.fillMaxWidth()) {
-                Box(
-                    modifier = Modifier
-                        .width(6.dp)
-                        .fillMaxHeight()
-                        .background(event.categoryColor)
-                )
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(IntrinsicSize.Min)
+            ) {
+                Box(modifier = Modifier.fillMaxHeight().width(6.dp).background(event.categoryColor))
 
-                Column(modifier = Modifier.padding(12.dp)) {
-                    Text(
-                        text = event.title,
-                        fontWeight = FontWeight.Bold
-                    )
+                Column(
+                    modifier = Modifier
+                        .padding(horizontal = 12.dp, vertical = 12.dp),
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    verticalArrangement = Arrangement.Center
+                ) {
+                    // Formato de fecha
+                    Text(text = event.date.substringAfterLast('-'), style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.ExtraBold, color = event.categoryColor)
+                    Text(text = event.date.substringBeforeLast('-'), style = MaterialTheme.typography.bodySmall, fontWeight = FontWeight.SemiBold, color = Color.Gray)
+                }
+
+                Column(
+                    modifier = Modifier.padding(vertical = 12.dp).padding(end = 12.dp).weight(1f),
+                    verticalArrangement = Arrangement.Center
+                ) {
+                    Text(text = event.title, style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Bold)
                     Spacer(modifier = Modifier.height(4.dp))
-                    Text(
-                        text = event.description,
-                        style = MaterialTheme.typography.bodySmall,
-                        maxLines = 2
-                    )
+                    Text(text = event.description, style = MaterialTheme.typography.bodySmall, color = Color.DarkGray, lineHeight = 16.sp, maxLines = 2)
                 }
             }
         }
@@ -165,12 +191,19 @@ fun EventCard(event: EventData, onCardClick: () -> Unit) {
 }
 
 @Composable
-fun EventDetailDialog(event: EventData, onDismiss: () -> Unit) {
+fun EventDetailDialog(event: EventModuleUI, onDismiss: () -> Unit) {
     Dialog(onDismissRequest = onDismiss) {
-        Card(shape = RoundedCornerShape(16.dp)) {
-            Column(modifier = Modifier.verticalScroll(rememberScrollState())) {
+        Card(
+            shape = RoundedCornerShape(16.dp),
+            modifier = Modifier.fillMaxWidth()
+        ) {
+            Column(
+                modifier = Modifier.verticalScroll(rememberScrollState())
+            ) {
+                val imageResId = R.drawable.ic_launcher_foreground
+
                 Image(
-                    painter = painterResource(id = event.imageResId),
+                    painter = painterResource(id = imageResId),
                     contentDescription = null,
                     modifier = Modifier
                         .fillMaxWidth()
@@ -182,11 +215,18 @@ fun EventDetailDialog(event: EventData, onDismiss: () -> Unit) {
                     Text(
                         text = event.title,
                         style = MaterialTheme.typography.headlineSmall,
-                        fontWeight = FontWeight.Bold
+                        fontWeight = FontWeight.Bold,
+                        textAlign = TextAlign.Center,
+                        modifier = Modifier.fillMaxWidth()
                     )
-                    Spacer(modifier = Modifier.height(12.dp))
-                    Text(text = event.longDescription)
+                    Spacer(modifier = Modifier.height(16.dp))
+                    Text(
+                        text = event.longDescription,
+                        style = MaterialTheme.typography.bodyLarge,
+                        lineHeight = 24.sp
+                    )
                     Spacer(modifier = Modifier.height(24.dp))
+
                     Button(
                         onClick = onDismiss,
                         modifier = Modifier.align(Alignment.End)
@@ -198,14 +238,3 @@ fun EventDetailDialog(event: EventData, onDismiss: () -> Unit) {
         }
     }
 }
-
-// ----- MODELO DE UI -----
-data class EventData(
-    val title: String,
-    val description: String,
-    val longDescription: String,
-    val date: String,
-    val categoryColor: Color,
-    val imageResId: Int,
-    val type: EventType
-)
