@@ -1,6 +1,6 @@
 package com.example.edubridge.data.local.entitymodel
 
-data class Resource(
+data class ResourceEntity(
     override val id: Int,
     override val title: String,
     override val createdAt: String,
