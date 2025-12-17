@@ -1,15 +1,21 @@
 package com.example.edubridge.data.local.entitymodel
 
+import androidx.room.Embedded
+import androidx.room.Entity
+import androidx.room.PrimaryKey
+
+/**
+ * ENTIDAD: Event
+ * Hereda de Contenido.
+ */
+@Entity(tableName = "eventos")
 data class Event(
-    override val id: Int,
-    override val title: String,
-    override val createdAt: String,
-    override val createdBy: Int,
-    val description: String,
-    val date: String
-) : Contenido(
-    id = id,
-    title = title,
-    createdAt = createdAt,
-    createdBy = createdBy
+    @PrimaryKey(autoGenerate = true)
+    val id: Int = 0,
+
+    @Embedded // Aplicamos Herencia
+    val contenido: Contenido,
+
+    val date: String,
+    val type: String
 )
