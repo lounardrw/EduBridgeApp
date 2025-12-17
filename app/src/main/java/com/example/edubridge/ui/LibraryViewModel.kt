@@ -1,7 +1,6 @@
 package com.example.edubridge.ui // O donde prefieras
 
 import androidx.lifecycle.ViewModel
-import com.example.edubridge.data.Resource
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
