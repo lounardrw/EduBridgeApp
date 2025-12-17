@@ -15,9 +15,6 @@ data class LoginUiState(
     val user: User? = null,
     val error: String? = null
 )
-
-
-//Carla Xochitl Cristalinas Maya re estructuración de login sin uso de backend
 class LoginViewModel : ViewModel() {
 
     private val auth = FirebaseAuth.getInstance()
@@ -31,11 +28,11 @@ class LoginViewModel : ViewModel() {
             try {
                 _state.value = LoginUiState(loading = true)
 
-                // 1. Firebase Auth login
+                //Firebase Auth login
                 val result = auth.signInWithEmailAndPassword(email, password).await()
                 val uid = result.user?.uid ?: throw Exception("UID no encontrado")
 
-                // 2. Firestore user data
+                //Firestore user data
                 val snapshot = db.collection("users").document(uid).get().await()
                 if (!snapshot.exists()) throw Exception("Usuario no encontrado en Firestore")
 

@@ -4,6 +4,7 @@ import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Visibility
 import androidx.compose.material.icons.filled.VisibilityOff
@@ -12,61 +13,50 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.edubridge.R
-import com.example.edubridge.data.SessionManager
 
+
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun LoginScreen(
-    onStudentLogin: (String) -> Unit,   // AHORA RECIBE EMAIL
+    onStudentLogin: (String) -> Unit,
     onTeacherLogin: () -> Unit,
     vm: LoginViewModel = viewModel()
 ) {
-    val uiState by vm.state.collectAsState()
-    val ctx = LocalContext.current
-    val session = remember { SessionManager(ctx) }
-
-    
-    // ─────────── LÓGICA DE LOGIN ───────────
-    LaunchedEffect(uiState.user) {
-        uiState.user?.let { u ->
-            // Guardamos sesión
-            session.saveUser(
-                u.matricula,
-                u.rol,
-                u.nombre,
-                u.correo
-            )
-
-            when (u.rol) {
-                "ALUMNO" -> onStudentLogin(u.correo ?: "")   // AHORA SÍ MANDAMOS EMAIL
-                "PROFESOR" -> onTeacherLogin()
-            }
-        }
-    }
-
-    // ─────────── CAMPOS DE TEXTO ───────────
     var email by remember { mutableStateOf("") }
     var pass by remember { mutableStateOf("") }
     var isPasswordVisible by remember { mutableStateOf(false) }
+    val uiState by vm.state.collectAsState()
 
     Scaffold(
         modifier = Modifier.fillMaxSize(),
         containerColor = Color(0xFFF5F5F5)
     ) { paddingValues ->
+
+        //LÓGICA DE LOGIN (Toma de datos)
+        LaunchedEffect(uiState.user) {
+            uiState.user?.let { u ->
+                // Lógica de navegación después de un login exitoso
+                when (u.rol) {
+                    "ALUMNO" -> onStudentLogin(u.correo ?: "")
+                    "PROFESOR" -> onTeacherLogin()
+                }
+            }
+        }
+
         Column(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(paddingValues),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
-
             // HEADER
             Box(
                 modifier = Modifier
@@ -84,7 +74,7 @@ fun LoginScreen(
                     .offset(y = (-60).dp)
             )
 
-            // CARD
+            // CARD PRINCIPAL
             Card(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -109,12 +99,13 @@ fun LoginScreen(
                         modifier = Modifier.padding(bottom = 20.dp)
                     )
 
-                    // CORREO
+                    //CORREO
                     OutlinedTextField(
                         value = email,
                         onValueChange = { email = it },
                         label = { Text("Correo institucional") },
-                        modifier = Modifier.fillMaxWidth()
+                        modifier = Modifier.fillMaxWidth(),
+                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Email)
                     )
 
                     Spacer(Modifier.height(16.dp))
@@ -141,6 +132,7 @@ fun LoginScreen(
                             }
                         } )
                     Spacer(Modifier.height(24.dp))
+
                     // BOTÓN DE LOGIN
                     Button(
                         onClick = { vm.login(email.trim(), pass) },
@@ -159,7 +151,8 @@ fun LoginScreen(
                             Text("INICIAR SESIÓN", fontWeight = FontWeight.Bold)
                         }
                     }
-                    // ERROR
+
+                    //ERROR
                     uiState.error?.let {
                         Spacer(Modifier.height(12.dp))
                         Text(it, color = MaterialTheme.colorScheme.error)
