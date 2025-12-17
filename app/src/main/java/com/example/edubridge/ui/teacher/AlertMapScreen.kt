@@ -1,65 +1,98 @@
 package com.example.edubridge.ui.teacher
 
 import android.annotation.SuppressLint
-import androidx.compose.foundation.layout.*import androidx.compose.material3.*
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.collectAsState
-import androidx.compose.runtime.getValue
+import androidx.compose.foundation.layout.*
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.ArrowBack
+import androidx.compose.material3.*
+import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import com.example.edubridge.data.PanicAlertRepository
 import com.google.android.gms.maps.model.CameraPosition
+import com.google.android.gms.maps.model.LatLng
+import com.google.android.gms.maps.CameraUpdateFactory
 import com.google.maps.android.compose.*
 
-// Anotación para solucionar el error de TopAppBar
-@SuppressLint("UnrememberedMutableState")
+
+/**
+ * Pantalla de visualización de la Alerta de Pánico.
+ * Muestra la ubicación del alumno en peligro en un mapa de Google Maps.
+ */
 @OptIn(ExperimentalMaterial3Api::class)
+@SuppressLint("UnrememberedMutableState", "MissingPermission") // Permiso se maneja en StudentHomeScreen
 @Composable
 fun AlertMapScreen(onDismiss: () -> Unit) {
-    val alert by PanicAlertRepository.activeAlert.collectAsState()
-    val cameraPositionState = rememberCameraPositionState()
+    // Escucha el estado de la alerta en tiempo real.
+    val alert by PanicAlertRepository.activeAlert.collectAsState(initial = null)
+
+    // Estado de la cámara para mover el mapa.
+    val initialLocation = LatLng(19.0, -98.0)
+    val cameraPositionState = rememberCameraPositionState {
+        position = CameraPosition.fromLatLngZoom(initialLocation, 10f)
+    }
+
+    // Lógica para enfocar el mapa en la alerta si existe.
+    LaunchedEffect(alert) {
+        alert?.let {
+            // Usamos CameraUpdateFactory (ahora resuelto) para animar el cambio de vista
+            cameraPositionState.animate(
+                CameraUpdateFactory.newLatLngZoom(it.location, 15f),
+                1000
+            )
+        }
+    }
 
     Scaffold(
         topBar = {
-            TopAppBar(title = { Text("Alerta de Seguridad Activa") })
+            TopAppBar(
+                title = { Text(if (alert != null) "Alerta Activa: ${alert!!.studentName}" else "Alerta de Seguridad") },
+                navigationIcon = {
+                    IconButton(onClick = onDismiss) {
+                        Icon(Icons.Default.ArrowBack, contentDescription = "Volver")
+                    }
+                }
+            )
         }
     ) { padding ->
         Box(modifier = Modifier.padding(padding).fillMaxSize()) {
-            if (alert != null) {
-                val currentAlert = alert!!
 
-                // Actualizar la posición de la cámara cuando la alerta cambia
-                cameraPositionState.position = CameraPosition.fromLatLngZoom(currentAlert.location, 15f)
-
-                GoogleMap(
-                    modifier = Modifier.fillMaxSize(),
-                    cameraPositionState = cameraPositionState
-                ) {
-                    // Marcador en la ubicación del alumno (CORRECCIÓN FINAL)
+            // Componente del Mapa de Google
+            GoogleMap(
+                modifier = Modifier.fillMaxSize(),
+                cameraPositionState = cameraPositionState
+            ) {
+                // Muestra el marcador SOLO si hay una alerta activa.
+                alert?.let { currentAlert ->
                     Marker(
-                        // Se crea un MarkerState y se le pasa la posición
                         state = MarkerState(position = currentAlert.location),
-                        title = "¡Alerta de ${currentAlert.studentName}!",
-                        snippet = "Ubicación de la emergencia"
+                        title = "¡Emergencia!",
+                        snippet = "Alumno: ${currentAlert.studentName}"
                     )
                 }
+            }
 
+            if (alert != null) {
                 // Botón para descartar la alerta
                 Button(
                     onClick = {
                         PanicAlertRepository.clearAlert()
                         onDismiss() // Regresa a la pantalla anterior
                     },
-                    modifier = Modifier.align(Alignment.BottomCenter).padding(16.dp)
+                    colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.error),
+                    modifier = Modifier.align(Alignment.BottomCenter).padding(24.dp)
                 ) {
                     Text("Marcar como Atendido y Cerrar")
                 }
-
             } else {
-                // No hay alerta activa
+                // No hay alerta activa, muestra un mensaje
                 Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                    Text("No hay alertas activas en este momento.")
+                    Text(
+                        "No hay alertas activas en este momento. El mapa está en espera.",
+                        style = MaterialTheme.typography.titleMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
                 }
             }
         }
