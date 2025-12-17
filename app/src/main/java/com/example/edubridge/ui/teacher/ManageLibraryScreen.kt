@@ -9,7 +9,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.edubridge.ui.LibraryViewModel
-import com.example.edubridge.ui.student.ResourceCard // Reutilizamos el Card del alumno
+import com.example.edubridge.ui.student.ResourceCard
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -30,9 +30,7 @@ fun ManageLibraryScreen(
         )
         Spacer(Modifier.height(16.dp))
 
-        // --- FORMULARIO PARA AÑADIR RECURSO (CREATE) ---
-        // Este formulario solo lo ve el profesor. El alumno nunca llega a esta pantalla.
-        // Esto cumple con "Control de visibilidad para botones administrativos".
+        // FORMULARIO PARA AÑADIR RECURSO (CREATE)
         OutlinedTextField(value = title, onValueChange = { title = it }, label = { Text("Título del libro") }, modifier = Modifier.fillMaxWidth())
         OutlinedTextField(value = author, onValueChange = { author = it }, label = { Text("Autor") }, modifier = Modifier.fillMaxWidth())
         OutlinedTextField(value = url, onValueChange = { url = it }, label = { Text("URL del recurso") }, modifier = Modifier.fillMaxWidth())
@@ -45,6 +43,8 @@ fun ManageLibraryScreen(
                 author = ""
                 url = ""
             },
+            // El botón solo se habilita si hay título, autor y URL
+            enabled = title.isNotBlank() && author.isNotBlank() && url.isNotBlank(),
             modifier = Modifier.fillMaxWidth()
         ) {
             Text("Subir Nuevo Recurso")
@@ -52,12 +52,10 @@ fun ManageLibraryScreen(
 
         Divider(modifier = Modifier.padding(vertical = 16.dp))
 
-        // --- LISTA DE RECURSOS EXISTENTES (READ) ---
+        // LISTA DE RECURSOS EXISTENTES (READ)
         Text("Recursos Actuales", style = MaterialTheme.typography.titleLarge)
         LazyColumn(verticalArrangement = Arrangement.spacedBy(8.dp)) {
             items(uiState.resources) { resource ->
-                // Aquí podrías crear un `ResourceCardTeacher` con botones de Editar/Borrar
-                // Por ahora, reutilizamos el del alumno para mostrar la lista.
                 ResourceCard(resource = resource, onClick = { /* El profesor no necesita click */ })
             }
         }
