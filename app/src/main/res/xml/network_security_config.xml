@@ -1,17 +1,27 @@
 <?xml version="1.0" encoding="utf-8"?>
 <network-security-config>
-    <!--
-CARLA XOCHITL CRISTALINAS MAYA     -->
+
+    <!-- Configuración para el servidor PHP local (HTTP/Cleartext) -->
     <domain-config cleartextTrafficPermitted="true">
-        <domain includeSubdomains="true">10.249.144.188</domain>
+        <domain includeSubdomains="true">192.168.0.20</domain>
+        <domain includeSubdomains="true">10.0.2.2</domain>
     </domain-config>
 
-    <!--
-    Configuración por defecto: Deshabilita el tráfico cleartext (HTTP)
-    para el resto de internet,
-    -->
+    <!-- FIX CRÍTICO: Bloque para forzar la confianza SSL en modo Debug.
+         Esto resuelve el error "Trust anchor for certification path not found."
+         cuando AGP/JDK falla al validar certificados de Firebase. -->
+    <debug-overrides>
+        <trust-anchors>
+            <!-- Confía en el certificado del sistema y del usuario -->
+            <certificates src="system" />
+            <certificates src="user" />
+        </trust-anchors>
+    </debug-overrides>
+
+    <!-- Base-config para tráfico HTTPS normal -->
     <base-config cleartextTrafficPermitted="false">
         <trust-anchors>
+            <certificates src="system" />
         </trust-anchors>
     </base-config>
 </network-security-config>

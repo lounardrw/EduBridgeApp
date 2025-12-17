@@ -13,18 +13,17 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
+
 import com.example.edubridge.ui.auth.LoginScreen
 import com.example.edubridge.ui.auth.RegisterScreen
 import com.example.edubridge.ui.student.StudentHomeScreen
 import com.example.edubridge.ui.teacher.TeacherDashboardScreen
-
-// IMPORTS PARA LAS PANTALLAS DEL PROFESOR Y ALUMNO
 import com.example.edubridge.ui.student.QuizSelectionScreen
 import com.example.edubridge.ui.teacher.ManageQuizzesScreen
 import com.example.edubridge.ui.teacher.AlertMapScreen
 import com.example.edubridge.ui.teacher.ManageEventsScreen
 import com.example.edubridge.ui.teacher.ManageLibraryScreen
-
+import com.example.edubridge.ui.student.QuizModuleDetailScreen
 
 object Destinations {
     const val LOGIN_ROUTE = "login"
@@ -39,10 +38,11 @@ object Destinations {
     const val ALERT_MAP_ROUTE = "alert_map"
 
     const val QUIZ_SELECTION_ROUTE = "quiz_selection/{grade}"
+    const val QUIZ_DETAIL_ROUTE = "quiz_detail/{quizId}"
 
     fun studentHomeWithEmail(email: String) = "student_home/$email"
+    fun quizDetailWithId(quizId: Int) = "quiz_detail/$quizId" // <-- Función constructora
 }
-
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -69,10 +69,9 @@ fun AppNavigation() {
         startDestination = Destinations.LOGIN_ROUTE
     ) {
 
-        // --- Pantalla de Inicio de Sesión ---
+        // --- Rutas de Auth/Dashboard (Sin cambios) ---
         composable(Destinations.LOGIN_ROUTE) {
             LoginScreen(
-                // Lógica de 'main': onStudentLogin ahora recibe el email
                 onStudentLogin = { email ->
                     navController.navigate(Destinations.studentHomeWithEmail(email)) {
                         popUpTo(Destinations.LOGIN_ROUTE) { inclusive = true }
@@ -86,31 +85,27 @@ fun AppNavigation() {
             )
         }
 
-        //Para el registro
         composable(Destinations.REGISTER_ROUTE) {
             RegisterScreen(
                 onBackToLogin = { navController.popBackStack() }
             )
         }
 
-
-        // --- Pantalla Principal del Alumno ---
-        // Lógica de 'main': Se define el argumento 'email' y se extrae
         composable(
             route = Destinations.STUDENT_HOME_ROUTE,
             arguments = listOf(navArgument("email") { type = NavType.StringType })
         ) { backStackEntry ->
             val email = backStackEntry.arguments?.getString("email")
             if (email != null) {
-                // Ahora le pasamos el navController a StudentHomeScreen
-                StudentHomeScreen(email = email, navController = navController) // <-- ACTUALIZA ESTA LÍNEA
+                StudentHomeScreen(
+                    email = email,
+                    navController = navController
+                )
             } else {
-                // Medida de seguridad: si el email es nulo, vuelve al login
-                navController.popBackStack(Destinations.LOGIN_ROUTE, inclusive = false)
+                navController.popBackStack(Destinations.LOGIN_ROUTE, false)
             }
         }
 
-        // --- Panel de Control del Profesor ---
         composable(Destinations.TEACHER_DASHBOARD_ROUTE) {
             TeacherDashboardScreen(
                 onManageLibrary = { navController.navigate(Destinations.MANAGE_LIBRARY_ROUTE) },
@@ -120,26 +115,51 @@ fun AppNavigation() {
             )
         }
 
-        // --- Nuevas Pantallas de Gestión del Profesor ---
+        // --- Gestión Profesor (Sin cambios) ---
         composable(Destinations.MANAGE_QUIZZES_ROUTE) {
             ManageQuizzesScreen()
         }
+
         composable(Destinations.ALERT_MAP_ROUTE) {
             AlertMapScreen(onDismiss = { navController.popBackStack() })
         }
+
         composable(Destinations.MANAGE_LIBRARY_ROUTE) {
             ManageLibraryScreen()
         }
+
         composable(Destinations.MANAGE_EVENTS_ROUTE) {
             ManageEventsScreen()
         }
-        // --- Nueva Pantalla de Selección de Quizz (de la rama de Cuenca) ---
+
+        // --- Pantalla de Selección de Módulo (Alumno) ---
         composable(
             route = Destinations.QUIZ_SELECTION_ROUTE,
             arguments = listOf(navArgument("grade") { type = NavType.StringType })
         ) { backStackEntry ->
             val grade = backStackEntry.arguments?.getString("grade") ?: "Grado Desconocido"
-            QuizSelectionScreen(grade = grade)
+            QuizSelectionScreen(
+                grade = grade,
+                // ACCIÓN: Navegar a la pantalla de detalle, pasando el ID del quiz/módulo
+                onModuleSelected = { quizId ->
+                    navController.navigate(Destinations.quizDetailWithId(quizId))
+                }
+            )
+        }
+
+        // --- Pantalla de Detalle del Módulo (NUEVA) ---
+        composable(
+            route = Destinations.QUIZ_DETAIL_ROUTE,
+            arguments = listOf(navArgument("quizId") { type = NavType.IntType })
+        ) { backStackEntry ->
+            val quizId = backStackEntry.arguments?.getInt("quizId")
+            if (quizId != null && quizId > 0) {
+                QuizModuleDetailScreen(
+                    quizId = quizId
+                )
+            } else {
+                navController.popBackStack()
+            }
         }
     }
 }

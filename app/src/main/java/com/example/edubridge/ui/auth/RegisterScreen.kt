@@ -7,6 +7,8 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.firestore.FirebaseFirestore
+import com.google.firebase.auth.AuthResult
+
 @Composable
 fun RegisterScreen(
     onBackToLogin: () -> Unit
@@ -16,9 +18,8 @@ fun RegisterScreen(
     var password by remember { mutableStateOf("") }
     var loading by remember { mutableStateOf(false) }
     var error by remember { mutableStateOf<String?>(null) }
-
-    val auth = FirebaseAuth.getInstance()
-    val db = FirebaseFirestore.getInstance()
+    val auth = remember { FirebaseAuth.getInstance() }
+    val db = remember { FirebaseFirestore.getInstance() }
 
     Column(
         modifier = Modifier
@@ -64,13 +65,13 @@ fun RegisterScreen(
                 error = null
 
                 auth.createUserWithEmailAndPassword(email, password)
-                    .addOnSuccessListener { result ->
+                    .addOnSuccessListener { result: AuthResult ->
                         val uid = result.user!!.uid
 
                         val data = mapOf(
                             "nombre" to nombre,
                             "correo" to email,
-                            "rol" to "pendiente"  // luego tú lo actualizas
+                            "rol" to "pendiente"
                         )
 
                         db.collection("users").document(uid).set(data)
@@ -78,17 +79,18 @@ fun RegisterScreen(
                                 loading = false
                                 onBackToLogin()
                             }
-                            .addOnFailureListener {
+                            .addOnFailureListener { firebaseError ->
                                 loading = false
-                                error = "Error guardando en Firestore"
+                                error = "Error guardando en Firestore: ${firebaseError.message}"
                             }
                     }
-                    .addOnFailureListener {
+                    .addOnFailureListener { firebaseError ->
                         loading = false
-                        error = it.message
+                        error = firebaseError.message
                     }
             },
-            modifier = Modifier.fillMaxWidth()
+            modifier = Modifier.fillMaxWidth(),
+            enabled = !loading
         ) {
             Text("Registrarse")
         }
