@@ -1,8 +1,5 @@
 package com.example.edubridge.ui.student
 
-import com.example.edubridge.ui.student.EventsScreen
-import com.example.edubridge.ui.student.LibraryScreen
-import com.example.edubridge.ui.student.ClassroomsScreen
 import android.Manifest
 import android.annotation.SuppressLint
 import android.util.Log
@@ -26,16 +23,13 @@ import com.example.edubridge.data.PanicAlertRepository
 import com.google.android.gms.location.LocationServices
 import com.google.android.gms.maps.model.LatLng
 import kotlinx.coroutines.launch
-
-// --- DEFINICIONES DE PANTALLAS Y NAVEGACIÓN INTERNA (Versión de 'main') ---
+//DEFINICIONES DE PANTALLAS Y NAVEGACIÓN INTERNA
 data class NavItem(val label: String, val icon: ImageVector, val screen: Screen)
-
 sealed class Screen(val route: String) {
     object Library : Screen("library")
     object Events : Screen("events")
     object Classrooms : Screen("classrooms")
 }
-
 @OptIn(ExperimentalMaterial3Api::class)
 @SuppressLint("MissingPermission")
 @Composable
@@ -43,17 +37,19 @@ fun StudentHomeScreen(email: String, navController: NavController) {
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
     val fusedLocationClient = remember { LocationServices.getFusedLocationProviderClient(context) }
-
     val profileDrawerState = rememberDrawerState(initialValue = DrawerValue.Closed)
     var showSettingsSheet by remember { mutableStateOf(false) }
     var currentScreen: Screen by remember { mutableStateOf<Screen>(Screen.Library) }
+
+    //Definimos un ID mock temporal para el usuario.
+    // Esto resuelve el error de 'userId' y permite que la función triggerAlert compile.
+    val mockUserId = remember { "UID_FIREBASE_SESSION_MOCK" }
 
     val navigationItems = listOf(
         NavItem(label = "Biblioteca", icon = Icons.Default.MenuBook, screen = Screen.Library),
         NavItem(label = "Eventos", icon = Icons.Default.Event, screen = Screen.Events),
         NavItem(label = "Aulas", icon = Icons.Default.School, screen = Screen.Classrooms)
     )
-
     val locationPermissionLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.RequestMultiplePermissions()
     ) { permissions ->
@@ -62,7 +58,10 @@ fun StudentHomeScreen(email: String, navController: NavController) {
                 if (location != null) {
                     val latLng = LatLng(location.latitude, location.longitude)
                     Log.d("PanicButton", "Ubicación obtenida: $latLng")
-                    PanicAlertRepository.triggerAlert(email, latLng) // Usamos el email real
+
+                    // FIX: Pasamos el tercer argumento (userId)
+                    PanicAlertRepository.triggerAlert(email, latLng, mockUserId) // Usamos el email real
+
                     Toast.makeText(context, "¡Alerta enviada!", Toast.LENGTH_SHORT).show()
 
                 } else {
@@ -74,8 +73,6 @@ fun StudentHomeScreen(email: String, navController: NavController) {
             Toast.makeText(context, "El permiso de ubicación es necesario para el botón de pánico.", Toast.LENGTH_LONG).show()
         }
     }
-
-
     ModalNavigationDrawer(
         drawerState = profileDrawerState,
         gesturesEnabled = profileDrawerState.isOpen,
@@ -119,7 +116,6 @@ fun StudentHomeScreen(email: String, navController: NavController) {
                 }
             },
             floatingActionButton = {
-                // Botón de pánico (Usamos la versión mejorada de la rama de Karen)
                 FloatingActionButton(
                     onClick = {
                         locationPermissionLauncher.launch(
@@ -129,13 +125,13 @@ fun StudentHomeScreen(email: String, navController: NavController) {
                     containerColor = MaterialTheme.colorScheme.error,
                     modifier = Modifier
                         .size(72.dp)
-                        .padding(8.dp), // Estilo de Karen
-                    shape = MaterialTheme.shapes.extraLarge      // Estilo de Karen
+                        .padding(8.dp),
+                    shape = MaterialTheme.shapes.extraLarge
                 ) {
                     Icon(
                         Icons.Default.Warning,
                         contentDescription = "Botón de Pánico",
-                        modifier = Modifier.size(40.dp) // Estilo de Karen
+                        modifier = Modifier.size(40.dp)
                     )
                 }
             }
@@ -148,26 +144,23 @@ fun StudentHomeScreen(email: String, navController: NavController) {
                 // Pasa el navController a la pantalla de Aulas
                 is Screen.Classrooms -> ClassroomsScreen(
                     modifier = modifier,
-                    navController = navController // <-- PÁSALA AQUÍ
+                    navController = navController
                 )
             }
         }
     }
-
     // Ficha modal que se muestra cuando `showSettingsSheet` es verdadero
     if (showSettingsSheet) {
         SettingsModalSheet(onDismiss = { showSettingsSheet = false })
     }
 }
-
 @Composable
 fun StudentProfileDrawerContent(
     drawerState: DrawerState,
     email: String,
     modifier: Modifier = Modifier
 ) {    val scope = rememberCoroutineScope()
-    // ENVUELVE TODO EN UN MODAL DRAWERSHEET
-    // Este componente ya tiene el color de fondo y la elevación correctos
+
     ModalDrawerSheet(modifier = modifier) {
         Column(
             modifier = Modifier
@@ -190,8 +183,6 @@ fun StudentProfileDrawerContent(
         }
     }
 }
-
-
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun SettingsModalSheet(onDismiss: () -> Unit) {
@@ -207,7 +198,7 @@ fun SettingsModalSheet(onDismiss: () -> Unit) {
                     modifier = Modifier
                         .padding(bottom = 8.dp)
                         .fillMaxWidth(),
-                    textAlign = TextAlign.Center // Centramos el título como en la rama de Karen
+                    textAlign = TextAlign.Center // Centramos el título
                 )
             }
             item { SettingItem(title = "Términos de Uso", description = "Reglas y Acuerdos Legales.") }
@@ -224,7 +215,6 @@ fun SettingsModalSheet(onDismiss: () -> Unit) {
         }
     }
 }
-
 @Composable
 fun SettingItem(title: String, description: String) {
     Card(Modifier
