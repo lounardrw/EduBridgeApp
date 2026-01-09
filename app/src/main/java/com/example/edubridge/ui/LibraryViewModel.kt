@@ -1,52 +1,90 @@
-package com.example.edubridge.ui // O donde prefieras
+package com.example.edubridge.ui
 
-import androidx.lifecycle.ViewModel
-import com.example.edubridge.data.Resource
-import kotlinx.coroutines.flow.MutableStateFlow
-import kotlinx.coroutines.flow.asStateFlow
-import kotlinx.coroutines.flow.update
+import android.app.Application
+import androidx.lifecycle.AndroidViewModel
+import androidx.lifecycle.viewModelScope
+import com.example.edubridge.EduBridgeApp
+import com.example.edubridge.data.ResourceRepository
+import com.example.edubridge.data.local.entitymodel.ResourceEntity
+import com.example.edubridge.data.local.entitymodel.Contenido
+import kotlinx.coroutines.flow.*
+import kotlinx.coroutines.launch
 
-class LibraryViewModel : ViewModel() {
+/**
+ * Modelo de datos para la Interfaz (Alumno y Profesor).
+ */
+data class LibraryModuleUI(
+    val id: String,
+    val title: String,
+    val author: String,
+    val url: String
+)
 
-    // --- ESTADO PRINCIPAL ---
+/**
+ * Estado de la pantalla.
+ */
+data class LibraryUiState(
+    val searchQuery: String = "",
+    val filteredResources: List<LibraryModuleUI> = emptyList()
+)
+
+class LibraryViewModel(application: Application) : AndroidViewModel(application) {
+
+    private val repository: ResourceRepository
     private val _uiState = MutableStateFlow(LibraryUiState())
     val uiState = _uiState.asStateFlow()
 
-    // --- DATOS DE EJEMPLO (en un futuro vendrán de Firebase) ---
-    private val allResources = listOf(
-        Resource("1", "Guía de Álgebra Lineal", "Dr. A. Valdor", "https://www.google.com/search?q=algebra+lineal+pdf"),
-        Resource("2", "Principios de Cálculo", "M. Spivak", "https://www.google.com/search?q=calculo+pdf"),
-        Resource("3", "Física para Universitarios", "Sears y Zemansky", "https://www.google.com/search?q=fisica+universitaria+pdf"),
-        Resource("4", "Introducción a la Programación", "Joyanes Aguilar", "https://www.google.com/search?q=programacion+pdf")
-    )
+    private var allResources: List<LibraryModuleUI> = emptyList()
 
     init {
-        // Carga inicial de datos
-        _uiState.value = LibraryUiState(resources = allResources, filteredResources = allResources)
-    }
+        val dao = (application as EduBridgeApp).database.resourceDao()
+        repository = ResourceRepository(dao)
 
-    // --- LÓGICA DE BÚSQUEDA ---
-    fun onSearchQueryChanged(query: String) {
-        val filtered = if (query.isBlank()) {
-            allResources
-        } else {
-            allResources.filter {
-                it.title.contains(query, ignoreCase = true) || it.author.contains(query, ignoreCase = true)
+        viewModelScope.launch {
+            repository.getAllResources().collect { entities ->
+                allResources = entities.map {
+                    LibraryModuleUI(
+                        id = it.id.toString(),
+                        title = it.contenido.title,
+                        author = it.author,
+                        url = it.contenido.url ?: ""
+                    )
+                }
+                applyFilter(_uiState.value.searchQuery)
             }
         }
-        _uiState.update { it.copy(searchQuery = query, filteredResources = filtered) }
     }
 
-    // --- LÓGICA DE GESTIÓN (PARA EL PROFESOR) ---
-    fun addResource(title: String, author: String, url: String) {
-        // TODO: Lógica para añadir recurso (futuro Firebase)
-        println("Añadiendo: $title, $author, $url")
+    fun onSearchQueryChanged(query: String) {
+        _uiState.update { it.copy(searchQuery = query) }
+        applyFilter(query)
+    }
+
+    private fun applyFilter(query: String) {
+        val filtered = if (query.isBlank()) allResources
+        else allResources.filter { it.title.contains(query, ignoreCase = true) || it.author.contains(query, ignoreCase = true) }
+        _uiState.update { it.copy(filteredResources = filtered) }
+    }
+
+    fun saveResource(id: String?, title: String, author: String, url: String) {
+        viewModelScope.launch {
+            if (id == null) {
+                repository.insertResource(title, author, url)
+            } else {
+                val entityId = id.toIntOrNull() ?: 0
+                val updated = ResourceEntity(
+                    id = entityId,
+                    contenido = Contenido(title, "Recurso de biblioteca", url),
+                    author = author
+                )
+                repository.updateResource(updated)
+            }
+        }
+    }
+
+    fun deleteResource(id: String) {
+        viewModelScope.launch {
+            id.toIntOrNull()?.let { repository.deleteResourceById(it) }
+        }
     }
 }
-
-// --- CLASE DE ESTADO PARA LA UI ---
-data class LibraryUiState(
-    val searchQuery: String = "",
-    val resources: List<Resource> = emptyList(),
-    val filteredResources: List<Resource> = emptyList()
-)

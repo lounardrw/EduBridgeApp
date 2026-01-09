@@ -1,113 +1,221 @@
 package com.example.edubridge.ui.student
 
-import androidx.compose.foundation.Image
+import android.content.Intent
+import android.net.Uri
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.gestures.rememberTransformableState
+import androidx.compose.foundation.gestures.transformable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.drawBehind
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.layout.ContentScale
-import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
-import com.example.edubridge.R
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Check
+import androidx.compose.ui.window.DialogProperties
+import coil.compose.AsyncImage
 
+/**
+ * Función auxiliar para detectar el tipo de archivo de forma unificada.
+ */
+@Composable
+fun rememberFileType(imageUrl: String?): String {
+    val context = LocalContext.current
+    return remember(imageUrl) {
+        val uri = Uri.parse(imageUrl ?: "")
+        val mimeType = try { context.contentResolver.getType(uri) } catch (e: Exception) { null } ?: ""
 
-// ----- ENUM PARA LOS FILTROS -----
-enum class EventType(val displayName: String) {
-    TODO("Todo"),
-    PRÓXIMOS("Próximos"),
-    BECAS("Becas"),
-    AVISOS("Avisos")
+        when {
+            mimeType.startsWith("image/") -> "IMAGE"
+            mimeType == "application/pdf" -> "PDF"
+            mimeType.contains("word") || mimeType.contains("officedocument.word") -> "WORD"
+            mimeType.contains("excel") || mimeType.contains("officedocument.spread") || mimeType.contains("sheet") -> "EXCEL"
+            mimeType.contains("powerpoint") || mimeType.contains("officedocument.present") -> "POWERPOINT"
+            else -> {
+                val url = imageUrl?.lowercase() ?: ""
+                if (url.endsWith(".pdf")) "PDF"
+                else if (url.contains("document") || url.contains("file")) "DOCUMENTO"
+                else "IMAGE"
+            }
+        }
+    }
+}
+
+/**
+ * Función para obtener el color temático según el tipo de archivo.
+ */
+fun getFileColor(fileType: String): Color {
+    return when(fileType) {
+        "PDF" -> Color(0xFFD32F2F)
+        "WORD" -> Color(0xFF1976D2)
+        "EXCEL" -> Color(0xFF388E3C)
+        "POWERPOINT" -> Color(0xFFF57C00)
+        else -> Color(0xFF455A64)
+    }
 }
 
 @Composable
-fun EventsScreen(modifier: Modifier = Modifier) {
-    // --- ESTADOS ---
-    var selectedEvent by remember { mutableStateOf<EventData?>(null) }
-    var currentFilter by remember { mutableStateOf(EventType.TODO) }
+fun EventsScreen(modifier: Modifier = Modifier, viewModel: EventViewModel) {
+    val uiState by viewModel.uiState.collectAsState()
+    var selectedEvent by remember { mutableStateOf<EventModuleUI?>(null) }
 
-    // --- LÓGICA DE FILTRADO ---
-    // Obtenemos la lista completa de eventos
-    val allEvents = remember { getSampleEvents() }
-    // Filtramos la lista basándonos en el estado 'currentFilter'
-    val filteredEvents = remember(currentFilter, allEvents) {
-        if (currentFilter == EventType.TODO) {
-            allEvents
-        } else {
-            allEvents.filter { it.type == currentFilter }
-        }
+    val filteredEvents = remember(uiState.events, uiState.currentFilter) {
+        if (uiState.currentFilter == EventType.TODO) uiState.events
+        else uiState.events.filter { it.type == uiState.currentFilter }
     }
 
-    // --- DIÁLOGO DE DETALLE ---
     selectedEvent?.let { event ->
-        EventDetailDialog(
-            event = event,
-            onDismiss = { selectedEvent = null }
-        )
+        EventDetailDialog(event = event, onDismiss = { selectedEvent = null })
     }
 
-    // --- ESTRUCTURA DE LA PANTALLA ---
-    // Usamos una sola LazyColumn para toda la pantalla
     LazyColumn(
-        modifier = modifier
-            .fillMaxSize()
-            .background(Color(0xFFF0F2F5)),
+        modifier = modifier.fillMaxSize().background(Color(0xFFF8F9FA)),
         contentPadding = PaddingValues(16.dp),
         verticalArrangement = Arrangement.spacedBy(16.dp)
     ) {
-        // 1. Título
         item {
-            Text(
-                text = "Eventos y Avisos",
-                style = MaterialTheme.typography.headlineLarge,
-                fontWeight = FontWeight.Bold,
-            )
+            Text("Centro de Noticias", style = MaterialTheme.typography.headlineLarge, fontWeight = FontWeight.Black)
+            Spacer(Modifier.height(8.dp))
         }
 
-        // 2. Fila de Filtros
         item {
-            FilterChips(
-                selectedType = currentFilter,
-                onFilterChange = { newFilter -> currentFilter = newFilter }
-            )
+            FilterChipsRow(selected = uiState.currentFilter, onSelected = { viewModel.filterEvents(it) })
         }
 
-        // 3. Lista de Eventos Filtrados
-        if (filteredEvents.isEmpty()) {
-            item {
-                Text(
-                    text = "No hay eventos en esta categoría.",
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(top = 50.dp),
-                    textAlign = TextAlign.Center,
-                    color = Color.Gray,
-                    style = MaterialTheme.typography.bodyLarge
-                )
+        items(filteredEvents, key = { it.id }) { event ->
+            EventCard(event = event, onCardClick = { selectedEvent = event })
+        }
+    }
+}
+
+@Composable
+fun EventDetailDialog(event: EventModuleUI, onDismiss: () -> Unit) {
+    val context = LocalContext.current
+    var showZoomView by remember { mutableStateOf(false) }
+    val fileInfo = rememberFileType(event.imageUrl)
+
+    if (showZoomView && fileInfo == "IMAGE") {
+        FullScreenZoomModal(url = event.imageUrl ?: "", onDismiss = { showZoomView = false })
+    }
+
+    Dialog(onDismissRequest = onDismiss, properties = DialogProperties(usePlatformDefaultWidth = false)) {
+        Card(
+            modifier = Modifier.fillMaxWidth(0.95f).fillMaxHeight(0.85f),
+            shape = RoundedCornerShape(32.dp),
+            colors = CardDefaults.cardColors(containerColor = Color.White)
+        ) {
+            Column(modifier = Modifier.verticalScroll(rememberScrollState())) {
+                Box(modifier = Modifier.fillMaxWidth().height(260.dp)) {
+                    if (fileInfo != "IMAGE") {
+                        val fileColor = getFileColor(fileInfo)
+                        Box(modifier = Modifier.fillMaxSize().background(Brush.verticalGradient(listOf(fileColor.copy(0.8f), fileColor)))) {
+                            Column(modifier = Modifier.fillMaxSize(), horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.Center) {
+                                Icon(
+                                    imageVector = if (fileInfo == "PDF") Icons.Default.PictureAsPdf else Icons.Default.Description,
+                                    contentDescription = null,
+                                    modifier = Modifier.size(90.dp),
+                                    tint = Color.White
+                                )
+                                Spacer(Modifier.height(8.dp))
+                                Text(fileInfo, color = Color.White, fontWeight = FontWeight.Black, fontSize = 24.sp)
+                            }
+                        }
+                    } else {
+                        AsyncImage(
+                            model = event.imageUrl,
+                            contentDescription = null,
+                            modifier = Modifier.fillMaxSize().clickable { showZoomView = true },
+                            contentScale = ContentScale.Crop
+                        )
+                        Box(Modifier.align(Alignment.BottomEnd).padding(16.dp).background(Color.Black.copy(0.6f), CircleShape)) {
+                            Icon(Icons.Default.ZoomIn, null, tint = Color.White, modifier = Modifier.padding(8.dp))
+                        }
+                    }
+                }
+
+                Column(modifier = Modifier.padding(24.dp)) {
+                    Text(event.title, style = MaterialTheme.typography.headlineMedium, fontWeight = FontWeight.Black)
+                    Text(event.type.displayName, color = event.categoryColor, fontWeight = FontWeight.Bold)
+
+                    HorizontalDivider(Modifier.padding(vertical = 16.dp), thickness = 1.dp, color = Color(0xFFEEEEEE))
+
+                    Text(event.longDescription, style = MaterialTheme.typography.bodyLarge, lineHeight = 26.sp, color = Color.DarkGray)
+
+                    Spacer(Modifier.height(32.dp))
+
+                    if (fileInfo != "IMAGE" && event.imageUrl != null) {
+                        Button(
+                            onClick = {
+                                try {
+                                    val uri = Uri.parse(event.imageUrl)
+                                    val mimeType = context.contentResolver.getType(uri) ?: "*/*"
+                                    val intent = Intent(Intent.ACTION_VIEW).apply {
+                                        setDataAndType(uri, mimeType)
+                                        addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+                                    }
+                                    context.startActivity(Intent.createChooser(intent, "Abrir con..."))
+                                } catch (e: Exception) { }
+                            },
+                            modifier = Modifier.fillMaxWidth().height(60.dp),
+                            shape = RoundedCornerShape(16.dp),
+                            colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF2E7D32))
+                        ) {
+                            Icon(Icons.Default.OpenInNew, null)
+                            Spacer(Modifier.width(12.dp))
+                            Text("ABRIR ARCHIVO", fontWeight = FontWeight.Bold)
+                        }
+                    }
+
+                    Spacer(Modifier.height(16.dp))
+                    TextButton(onClick = onDismiss, modifier = Modifier.align(Alignment.CenterHorizontally)) {
+                        Text("CERRAR", color = Color.Gray)
+                    }
+                }
             }
-        } else {
-            items(filteredEvents) { event ->
-                EventCard(
-                    event = event,
-                    onCardClick = { selectedEvent = event }
-                )
+        }
+    }
+}
+
+@Composable
+fun FullScreenZoomModal(url: String, onDismiss: () -> Unit) {
+    var scale by remember { mutableStateOf(1f) }
+    var offset by remember { mutableStateOf(Offset.Zero) }
+    val state = rememberTransformableState { zoomChange, offsetChange, _ ->
+        scale = (scale * zoomChange).coerceIn(1f, 5f)
+        offset += offsetChange
+    }
+
+    Dialog(onDismissRequest = onDismiss, properties = DialogProperties(usePlatformDefaultWidth = false)) {
+        Box(modifier = Modifier.fillMaxSize().background(Color.Black)) {
+            AsyncImage(
+                model = url, contentDescription = null,
+                modifier = Modifier
+                    .fillMaxSize()
+                    .graphicsLayer(scaleX = scale, scaleY = scale, translationX = offset.x, translationY = offset.y)
+                    .transformable(state = state),
+                contentScale = ContentScale.Fit
+            )
+            IconButton(onClick = onDismiss, modifier = Modifier.align(Alignment.TopEnd).padding(20.dp).background(Color.White.copy(0.2f), CircleShape)) {
+                Icon(Icons.Default.Close, null, tint = Color.White)
             }
         }
     }
@@ -115,167 +223,63 @@ fun EventsScreen(modifier: Modifier = Modifier) {
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun FilterChips(selectedType: EventType, onFilterChange: (EventType) -> Unit) {
-    LazyRow(
-        horizontalArrangement = Arrangement.spacedBy(8.dp)
-    ) {
-        items(EventType.values()) { eventType ->
-            FilterChip(
-                selected = selectedType == eventType,
-                onClick = { onFilterChange(eventType) },
-                label = { Text(eventType.displayName) },
-                leadingIcon = {
-                    if (selectedType == eventType) {
-                        Icon(
-                            imageVector = Icons.Default.Check,
-                            contentDescription = "Seleccionado",
-                            modifier = Modifier.size(FilterChipDefaults.IconSize)
-                        )
-                    }
-                }
-            )
+fun FilterChipsRow(selected: EventType, onSelected: (EventType) -> Unit) {
+    LazyRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+        items(EventType.values()) { type ->
+            FilterChip(selected = selected == type, onClick = { onSelected(type) }, label = { Text(type.displayName) })
         }
     }
 }
 
-
-// El resto de tu archivo ya está perfecto, no necesita cambios.
 @Composable
-fun EventCard(event: EventData, onCardClick: () -> Unit) {
+fun EventCard(event: EventModuleUI, onCardClick: () -> Unit) {
+    val fileInfo = rememberFileType(event.imageUrl)
+
     Card(
-        modifier = Modifier
-            .fillMaxWidth()
-            .clickable(onClick = onCardClick),
-        elevation = CardDefaults.cardElevation(defaultElevation = 4.dp),
-        shape = RoundedCornerShape(12.dp),
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
+        modifier = Modifier.fillMaxWidth().clickable { onCardClick() },
+        shape = RoundedCornerShape(20.dp),
+        colors = CardDefaults.cardColors(containerColor = Color.White),
+        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
     ) {
         Column {
-            Image(
-                painter = painterResource(id = event.imageResId),
-                contentDescription = "Cartel del evento: ${event.title}",
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(110.dp),
-                contentScale = ContentScale.Crop
-            )
+            // CABECERA DE LA TARJETA (Imagen o Logo de Archivo)
+            Box(modifier = Modifier.fillMaxWidth().height(150.dp)) {
+                if (fileInfo != "IMAGE") {
+                    val fileColor = getFileColor(fileInfo)
+                    Box(modifier = Modifier.fillMaxSize().background(Brush.verticalGradient(listOf(fileColor.copy(0.8f), fileColor)))) {
+                        Column(modifier = Modifier.fillMaxSize(), horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.Center) {
+                            Icon(
+                                imageVector = if (fileInfo == "PDF") Icons.Default.PictureAsPdf else Icons.Default.Description,
+                                contentDescription = null,
+                                modifier = Modifier.size(50.dp),
+                                tint = Color.White
+                            )
+                            Text(fileInfo, color = Color.White, fontWeight = FontWeight.Bold, fontSize = 14.sp)
+                        }
+                    }
+                } else {
+                    AsyncImage(
+                        model = event.imageUrl,
+                        contentDescription = null,
+                        modifier = Modifier.fillMaxSize(),
+                        contentScale = ContentScale.Crop
+                    )
+                }
+            }
 
+            // CUERPO DE LA TARJETA
             Row(
                 modifier = Modifier
-                    .fillMaxWidth()
-                    .height(IntrinsicSize.Min)
-            ) {
-                Box(modifier = Modifier.fillMaxHeight().width(6.dp).background(event.categoryColor))
-
-                Column(
-                    modifier = Modifier
-                        .padding(horizontal = 12.dp, vertical = 12.dp),
-                    horizontalAlignment = Alignment.CenterHorizontally,
-                    verticalArrangement = Arrangement.Center
-                ) {
-                    Text(text = event.date.substringBefore(" "), style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.ExtraBold, color = event.categoryColor)
-                    Text(text = event.date.substringAfter(" "), style = MaterialTheme.typography.bodySmall, fontWeight = FontWeight.SemiBold, color = Color.Gray)
-                }
-
-                Column(
-                    modifier = Modifier.padding(vertical = 12.dp).padding(end = 12.dp).weight(1f),
-                    verticalArrangement = Arrangement.Center
-                ) {
-                    Text(text = event.title, style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Bold)
-                    Spacer(modifier = Modifier.height(4.dp))
-                    Text(text = event.description, style = MaterialTheme.typography.bodySmall, color = Color.DarkGray, lineHeight = 16.sp, maxLines = 2)
-                }
-            }
-        }
-    }
-}
-
-@Composable
-fun EventDetailDialog(event: EventData, onDismiss: () -> Unit) {
-    Dialog(onDismissRequest = onDismiss) {
-        Card(
-            shape = RoundedCornerShape(16.dp),
-            modifier = Modifier.fillMaxWidth()
-        ) {
-            Column(
-                modifier = Modifier.verticalScroll(rememberScrollState())
-            ) {
-                Image(
-                    painter = painterResource(id = event.imageResId),
-                    contentDescription = null,
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .height(180.dp),
-                    contentScale = ContentScale.Crop
-                )
-
-                Column(modifier = Modifier.padding(16.dp)) {
-                    Text(
-                        text = event.title,
-                        style = MaterialTheme.typography.headlineSmall,
-                        fontWeight = FontWeight.Bold,
-                        textAlign = TextAlign.Center,
-                        modifier = Modifier.fillMaxWidth()
-                    )
-                    Spacer(modifier = Modifier.height(16.dp))
-                    Text(
-                        text = event.longDescription,
-                        style = MaterialTheme.typography.bodyLarge,
-                        lineHeight = 24.sp
-                    )
-                    Spacer(modifier = Modifier.height(24.dp))
-
-                    Button(
-                        onClick = onDismiss,
-                        modifier = Modifier.align(Alignment.End)
-                    ) {
-                        Text("Cerrar")
+                    .padding(16.dp)
+                    .drawBehind {
+                        drawLine(color = event.categoryColor, start = Offset(0f, 0f), end = Offset(0f, size.height), strokeWidth = 4.dp.toPx())
                     }
+            ) {
+                Column(modifier = Modifier.padding(start = 16.dp)) {
+                    Text(event.title, fontWeight = FontWeight.Black, fontSize = 17.sp)
+                    Text(event.date, fontSize = 12.sp, color = Color.Gray)
                 }
             }
         }
     }
-}
-
-// ----- DATOS (sin cambios) -----
-data class EventData(
-    val title: String,
-    val description: String,
-    val longDescription: String,
-    val date: String,
-    val categoryColor: Color,
-    val imageResId: Int,
-    val type: EventType
-)
-
-fun getSampleEvents(): List<EventData> {
-    return listOf(
-        EventData(
-            title = "Beca de Excelencia Académica",
-            description = "Aplica ya a la beca por promedio para el siguiente semestre.",
-            longDescription = "La convocatoria para la Beca de Excelencia Académica ya está abierta. Los requisitos incluyen un promedio mínimo de 9.5 y no tener materias reprobadas. La fecha límite para entregar documentos es el 15 de Febrero. Consulta las bases completas en el portal.",
-            date = "15 FEB",
-            categoryColor = Color(0xFF0D47A1),
-            imageResId = R.drawable.evento_calificaciones,
-            type = EventType.BECAS
-        ),
-        EventData(
-            title = "Torneo de Fútbol Interescolar",
-            description = "¡Apoya a nuestro equipo en la gran final! No faltes.",
-            longDescription = "¡La gran final del Torneo de Fútbol Interescolar ha llegado! Nuestro equipo se enfrentará a los 'Tigres del Norte' en un partido que promete ser épico...",
-            date = "28 ENE",
-            categoryColor = Color(0xFFF44336),
-            imageResId = R.drawable.evento_futbol,
-            type = EventType.PRÓXIMOS
-        ),
-        EventData(
-            title = "Mantenimiento de Plataforma",
-            description = "El sistema estará fuera de línea de 10 PM a 11 PM.",
-            longDescription = "AVISO IMPORTANTE: Se realizará un mantenimiento programado en los servidores de la plataforma EduBridge. Durante este periodo, el acceso no estará disponible...",
-            date = "30 ENE",
-            categoryColor = Color(0xFF169600),
-            imageResId = R.drawable.evento_mantenimiento,
-            type = EventType.AVISOS
-        )
-    )
 }

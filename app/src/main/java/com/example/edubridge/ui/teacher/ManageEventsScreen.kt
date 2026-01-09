@@ -1,272 +1,183 @@
 package com.example.edubridge.ui.teacher
 
-import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.PaddingValues
-import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.padding
+import android.content.Intent
+import android.net.Uri
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Add
-import androidx.compose.material.icons.filled.Delete
-import androidx.compose.material.icons.filled.Edit
-import androidx.compose.material3.AlertDialog
-import androidx.compose.material3.Button
-import androidx.compose.material3.ButtonDefaults
-import androidx.compose.material3.Card
-import androidx.compose.material3.CardDefaults
-import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.FloatingActionButton
-import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedTextField
-import androidx.compose.material3.Scaffold
-import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
-import androidx.compose.material3.TopAppBar
-import androidx.compose.material3.TopAppBarDefaults
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateListOf
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
+import androidx.compose.material.icons.filled.*
+import androidx.compose.material3.*
+import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
-import java.util.UUID
-
-// El modelo de datos no cambia
-data class Event(val id: String = UUID.randomUUID().toString(), val title: String, val description: String)
+import androidx.compose.ui.unit.sp
+import androidx.lifecycle.viewmodel.compose.viewModel
+import com.example.edubridge.ui.student.EventModuleUI
+import com.example.edubridge.ui.student.EventType
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun ManageEventsScreen() {
-    val events = remember {
-        mutableStateListOf(
-            Event(title = "Reunión de Padres", description = "Discusión de calificaciones del primer parcial."),
-            Event(title = "Entrega de Proyecto Final", description = "La fecha límite para el proyecto de ciencias es el próximo lunes."),
-            Event(title = "Anuncio: No hay clases", description = "El día jueves se suspenden las clases por junta de consejo técnico.")
-        )
-    }
+fun ManageEventsScreen(viewModel: TeacherEventsViewModel = viewModel()) {
+    // Escuchamos la lista filtrada y la búsqueda
+    val filteredEvents by viewModel.filteredEvents.collectAsState()
+    val searchQuery by viewModel.searchQuery.collectAsState()
 
-    var showAddOrEditDialog by remember { mutableStateOf(false) }
-    var eventToEdit by remember { mutableStateOf<Event?>(null) }
-    var eventToDelete by remember { mutableStateOf<Event?>(null) }
+    var showDialog by remember { mutableStateOf(false) }
+    var eventToEdit by remember { mutableStateOf<EventModuleUI?>(null) }
 
     Scaffold(
         topBar = {
-            TopAppBar(
-                title = { Text("Gestionar Eventos y Anuncios") },
-                colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = MaterialTheme.colorScheme.primary,
-                    titleContentColor = MaterialTheme.colorScheme.onPrimary
-                )
+            CenterAlignedTopAppBar(
+                title = { Text("GESTIÓN EDUCATIVA", fontWeight = FontWeight.Black) }
             )
         },
         floatingActionButton = {
             FloatingActionButton(
-                onClick = {
-                    eventToEdit = null
-                    showAddOrEditDialog = true
-                },
-                containerColor = MaterialTheme.colorScheme.secondary
+                onClick = { eventToEdit = null; showDialog = true },
+                containerColor = Color(0xFF2E7D32)
             ) {
-                Icon(Icons.Filled.Add, contentDescription = "Agregar Evento", tint = MaterialTheme.colorScheme.onSecondary)
+                Icon(Icons.Default.Add, null, tint = Color.White)
             }
         }
-    ) { paddingValues ->
-        Box(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(paddingValues),
-            contentAlignment = Alignment.Center
-        ) {
-            if (events.isEmpty()) {
-                Text("No hay eventos ni anuncios. ¡Agrega uno nuevo!")
+    ) { padding ->
+        Column(modifier = Modifier.padding(padding).fillMaxSize().background(Color(0xFFF8F9FA)).padding(16.dp)) {
+
+            Text("Panel de Comunicados", style = MaterialTheme.typography.headlineLarge, fontWeight = FontWeight.Black)
+            Text("Administra avisos, becas y eventos escolares", color = Color.Gray, fontSize = 14.sp)
+
+            Spacer(Modifier.height(16.dp))
+
+            // --- NUEVO: BARRA DE BÚSQUEDA ---
+            OutlinedTextField(
+                value = searchQuery,
+                onValueChange = { viewModel.onSearchQueryChanged(it) },
+                modifier = Modifier.fillMaxWidth(),
+                placeholder = { Text("Buscar comunicados por título...") },
+                leadingIcon = { Icon(Icons.Default.Search, null, tint = Color(0xFF2E7D32)) },
+                trailingIcon = {
+                    if (searchQuery.isNotEmpty()) {
+                        IconButton(onClick = { viewModel.onSearchQueryChanged("") }) {
+                            Icon(Icons.Default.Close, null, tint = Color.Gray)
+                        }
+                    }
+                },
+                shape = RoundedCornerShape(16.dp),
+                colors = OutlinedTextFieldDefaults.colors(
+                    focusedBorderColor = Color(0xFF2E7D32),
+                    unfocusedContainerColor = Color.White,
+                    focusedContainerColor = Color.White
+                ),
+                singleLine = true
+            )
+
+            Spacer(Modifier.height(16.dp))
+
+            // Lista Filtrada
+            if (filteredEvents.isEmpty()) {
+                Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                    Text("No se encontraron comunicados.", color = Color.Gray)
+                }
             } else {
-                LazyColumn(
-                    modifier = Modifier.fillMaxSize(),
-                    contentPadding = PaddingValues(16.dp),
-                    verticalArrangement = Arrangement.spacedBy(12.dp)
-                ) {
-                    items(events, key = { it.id }) { event ->
-                        EventCard(
-                            event = event,
-                            onEditClick = {
-                                eventToEdit = event
-                                showAddOrEditDialog = true
-                            },
-                            onDeleteClick = { eventToDelete = event }
-                        )
+                LazyColumn(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                    items(filteredEvents, key = { it.id }) { event ->
+                        Card(
+                            modifier = Modifier.fillMaxWidth(),
+                            shape = RoundedCornerShape(16.dp),
+                            colors = CardDefaults.cardColors(containerColor = Color.White),
+                            elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
+                        ) {
+                            Row(Modifier.padding(16.dp), verticalAlignment = Alignment.CenterVertically) {
+                                val isDoc = event.imageUrl?.let { it.contains("document") || it.contains(".pdf") } ?: false
+                                Icon(
+                                    imageVector = if (isDoc) Icons.Default.Description else Icons.Default.Image,
+                                    contentDescription = null,
+                                    tint = Color.Gray
+                                )
+                                Spacer(Modifier.width(12.dp))
+                                Column(Modifier.weight(1f)) {
+                                    Text(event.title, fontWeight = FontWeight.Bold)
+                                    Text(event.type.displayName, color = Color(0xFF2E7D32), style = MaterialTheme.typography.labelSmall)
+                                }
+                                IconButton(onClick = { eventToEdit = event; showDialog = true }) {
+                                    Icon(Icons.Default.Edit, null, tint = Color(0xFF2E7D32))
+                                }
+                                IconButton(onClick = { viewModel.deleteEvent(event.id) }) {
+                                    Icon(Icons.Default.Delete, null, tint = Color.Red)
+                                }
+                            }
+                        }
                     }
                 }
             }
         }
     }
 
-    if (showAddOrEditDialog) {
-        AddOrEditEventDialog(
+    if (showDialog) {
+        EventEditorDialog(
             event = eventToEdit,
-            onDismiss = { showAddOrEditDialog = false },
-            onEventConfirm = { title, description ->
-                if (eventToEdit == null) {
-                    events.add(0, Event(title = title, description = description))
-                } else {
-                    val index = events.indexOfFirst { it.id == eventToEdit!!.id }
-                    if (index != -1) {
-                        events[index] = events[index].copy(title = title, description = description)
-                    }
-                }
-                showAddOrEditDialog = false // Cerramos el diálogo
-            }
-        )
-    }
-
-    eventToDelete?.let { event ->
-        AlertDialog(
-            onDismissRequest = { eventToDelete = null },
-            title = { Text("Confirmar Eliminación") },
-            text = { Text("¿Estás seguro de que deseas eliminar el evento '${event.title}'?") },
-            confirmButton = {
-                Button(
-                    onClick = {
-                        events.remove(event)
-                        eventToDelete = null
-                    },
-                    colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.error)
-                ) {
-                    Text("Eliminar")
-                }
-            },
-            dismissButton = {
-                TextButton(onClick = { eventToDelete = null }) {
-                    Text("Cancelar")
-                }
+            onDismiss = { showDialog = false },
+            onConfirm = { id, title, desc, type, uri ->
+                if (id == null) viewModel.addEvent(title, desc, type, uri)
+                else viewModel.updateEvent(id, title, desc, type, uri)
+                showDialog = false
             }
         )
     }
 }
 
+// ... (La función EventEditorDialog se mantiene igual)
 @Composable
-fun EventCard(event: Event, onEditClick: () -> Unit, onDeleteClick: () -> Unit) {
-    Card(
-        modifier = Modifier.fillMaxWidth(),
-        elevation = CardDefaults.cardElevation(defaultElevation = 4.dp),
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)
-    ) {
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(16.dp),
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            Column(modifier = Modifier.weight(1f)) {
-                Text(
-                    text = event.title,
-                    style = MaterialTheme.typography.titleLarge,
-                    fontWeight = FontWeight.Bold
-                )
-                Spacer(modifier = Modifier.height(4.dp))
-                Text(
-                    text = event.description,
-                    style = MaterialTheme.typography.bodyMedium
-                )
-            }
-            IconButton(onClick = onEditClick) {
-                Icon(
-                    Icons.Default.Edit,
-                    contentDescription = "Editar Evento",
-                    tint = MaterialTheme.colorScheme.primary
-                )
-            }
-            IconButton(onClick = onDeleteClick) {
-                Icon(
-                    Icons.Default.Delete,
-                    contentDescription = "Eliminar Evento",
-                    tint = MaterialTheme.colorScheme.error
-                )
-            }
-        }
-    }
-}
-
-// --- DIÁLOGO REUTILIZADO PARA AÑADIR Y EDITAR ---
-@Composable
-fun AddOrEditEventDialog(
-    event: Event?,
-    onDismiss: () -> Unit,
-    onEventConfirm: (title: String, description: String) -> Unit
-) {
+fun EventEditorDialog(event: EventModuleUI?, onDismiss: () -> Unit, onConfirm: (Int?, String, String, EventType, String) -> Unit) {
+    val context = LocalContext.current
     var title by remember { mutableStateOf(event?.title ?: "") }
-    var description by remember { mutableStateOf(event?.description ?: "") }
-    var isTitleError by remember { mutableStateOf(false) }
+    var desc by remember { mutableStateOf(event?.description ?: "") }
+    var fileUri by remember { mutableStateOf(event?.imageUrl ?: "") }
+    var type by remember { mutableStateOf(event?.type ?: EventType.AVISOS) }
+    var expanded by remember { mutableStateOf(false) }
 
-    LaunchedEffect(event) {
-        if (event != null) {
-            title = event.title
-            description = event.description
+    val launcher = rememberLauncherForActivityResult(ActivityResultContracts.OpenDocument()) { uri ->
+        uri?.let {
+            try {
+                val takeFlags: Int = Intent.FLAG_GRANT_READ_URI_PERMISSION
+                context.contentResolver.takePersistableUriPermission(it, takeFlags)
+                fileUri = it.toString()
+            } catch (e: Exception) { fileUri = it.toString() }
         }
     }
 
     AlertDialog(
         onDismissRequest = onDismiss,
-        title = { Text(if (event == null) "Nuevo Evento o Anuncio" else "Editar Evento") },
+        title = { Text(if (event == null) "Nuevo Comunicado" else "Editar Comunicado", fontWeight = FontWeight.Bold) },
         text = {
-            Column {
-                OutlinedTextField(
-                    value = title,
-                    onValueChange = {
-                        title = it
-                        if (it.isNotBlank()) isTitleError = false
-                    },
-                    label = { Text("Título") },
-                    singleLine = true,
-                    isError = isTitleError
-                )
-                if (isTitleError) {
-                    Text("El título es obligatorio", color = MaterialTheme.colorScheme.error, style = MaterialTheme.typography.labelSmall)
+            Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                OutlinedTextField(value = title, onValueChange = { title = it }, label = { Text("Título") }, modifier = Modifier.fillMaxWidth())
+                OutlinedTextField(value = desc, onValueChange = { desc = it }, label = { Text("Descripción") }, modifier = Modifier.fillMaxWidth())
+                Button(onClick = { launcher.launch(arrayOf("*/*")) }, modifier = Modifier.fillMaxWidth(), colors = ButtonDefaults.buttonColors(containerColor = Color.DarkGray)) {
+                    Icon(Icons.Default.UploadFile, null); Spacer(Modifier.width(8.dp)); Text("Cargar Multimedia")
                 }
-                Spacer(modifier = Modifier.height(16.dp))
-                OutlinedTextField(
-                    value = description,
-                    onValueChange = { description = it },
-                    label = { Text("Descripción") },
-                    modifier = Modifier.height(100.dp)
-                )
+                Box {
+                    OutlinedButton(onClick = { expanded = true }, modifier = Modifier.fillMaxWidth()) { Text("Sección: ${type.displayName}") }
+                    DropdownMenu(expanded = expanded, onDismissRequest = { expanded = false }) {
+                        EventType.values().filter { it != EventType.TODO }.forEach { t ->
+                            DropdownMenuItem(text = { Text(t.displayName) }, onClick = { type = t; expanded = false })
+                        }
+                    }
+                }
             }
         },
         confirmButton = {
-            Button(onClick = {
-                if (title.isNotBlank()) {
-                    onEventConfirm(title, description)
-                } else {
-                    isTitleError = true
-                }
-            }) {
-                Text("Guardar")
-            }
-        },
-        dismissButton = {
-            TextButton(onClick = onDismiss) {
-                Text("Cancelar")
+            Button(onClick = { onConfirm(event?.id, title, desc, type, fileUri) }, colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF2E7D32))) {
+                Text("GUARDAR")
             }
         }
     )
-}
-
-@Preview(showBackground = true)
-@Composable
-fun ManageEventsScreenPreview() {
-    ManageEventsScreen()
 }

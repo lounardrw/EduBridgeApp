@@ -2,9 +2,9 @@ package com.example.edubridge.ui.student
 
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.lazy.grid.GridCells
-import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
-import androidx.compose.foundation.lazy.grid.items
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ChevronRight
 import androidx.compose.material.icons.filled.School
@@ -12,112 +12,64 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import androidx.navigation.NavController // Controla la navegación entre destinos.
+import androidx.navigation.NavController
 
-// ====================================================================
-// DATOS ESTATICOS
-// ====================================================================
+val schoolGrades = listOf("1° Secundaria", "2° Secundaria", "3° Secundaria")
 
-// Los grados de Secundaria (los únicos que se usan en la app).
-val schoolGrades = listOf(
-    "1° Secundaria",
-    "2° Secundaria",
-    "3° Secundaria"
-)
-
-// ====================================================================
-// COMPOSABLE PRINCIPAL
-// ====================================================================
-
-/**
- * Pantalla de Aulas Interactivas (Luis).
- * Muestra los grados escolares disponibles.
- * @param navController El controlador de navegación para cambiar de pantalla.
- */
 @Composable
 fun ClassroomsScreen(modifier: Modifier = Modifier, navController: NavController) {
-    Column(
-        modifier = modifier
-            .fillMaxSize()
-            .padding(16.dp),
-        horizontalAlignment = Alignment.CenterHorizontally
+    LazyColumn(
+        modifier = modifier.fillMaxSize().padding(horizontal = 16.dp),
+        contentPadding = PaddingValues(top = 16.dp, bottom = 16.dp),
+        verticalArrangement = Arrangement.spacedBy(16.dp)
     ) {
-        Text(
-            text = "Selecciona tu Grado Escolar",
-            style = MaterialTheme.typography.headlineMedium,
-            modifier = Modifier.padding(bottom = 24.dp)
-        )
+        item {
+            // TÍTULO HOMOGÉNEO: Estandarizado con Eventos
+            Text(
+                text = "Grados Escolares",
+                style = MaterialTheme.typography.headlineLarge,
+                fontWeight = FontWeight.Black, // Consistente con Eventos
+                color = Color.Black
+            )
+            Text(
+                text = "Selecciona tu grado para ver módulos",
+                style = MaterialTheme.typography.bodyMedium,
+                color = Color.Gray
+            )
+            Spacer(Modifier.height(8.dp))
+        }
 
-        // Muestra los grados en una lista vertical de tarjetas grandes.
-        LazyVerticalGrid(
-            columns = GridCells.Fixed(1), // Una sola columna para un diseño más limpio y legible.
-            contentPadding = PaddingValues(8.dp),
-            verticalArrangement = Arrangement.spacedBy(16.dp),
-            horizontalArrangement = Arrangement.spacedBy(16.dp),
-            modifier = Modifier.fillMaxWidth().weight(1f)
-        ) {
-            items(schoolGrades) { grade ->
-                GradeCard(
-                    grade = grade,
-                    onClick = {
-                        // ACCIÓN CLAVE: Navegación al QuizSelectionScreen.
-                        // Se usa la URL que acepta el argumento de grado.
-                        navController.navigate("quiz_selection/$grade")
-                    }
-                )
+        items(schoolGrades) { grade ->
+            GradeCard(grade = grade) {
+                navController.navigate("quiz_selection/$grade")
             }
         }
     }
 }
 
-// ====================================================================
-// COMPOSABLES AUXILIARES
-// ====================================================================
-
-/**
- * Tarjeta interactiva para representar cada grado escolar.
- */
 @Composable
 fun GradeCard(grade: String, onClick: () -> Unit) {
     Card(
-        modifier = Modifier
-            .fillMaxWidth()
-            .height(120.dp)
-            .clickable(onClick = onClick), // Hace que toda la tarjeta sea clickeable.
-        colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.surfaceVariant // Fondo suave para destacar.
-        )
+        modifier = Modifier.fillMaxWidth().height(110.dp).clickable(onClick = onClick),
+        shape = RoundedCornerShape(20.dp),
+        colors = CardDefaults.cardColors(containerColor = Color.White),
+        elevation = CardDefaults.cardElevation(defaultElevation = 4.dp)
     ) {
         Row(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(16.dp),
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.SpaceBetween
+            modifier = Modifier.fillMaxSize().padding(20.dp),
+            verticalAlignment = Alignment.CenterVertically
         ) {
-            // Icono del grado.
-            Icon(
-                Icons.Default.School,
-                contentDescription = null,
-                tint = MaterialTheme.colorScheme.primary,
-                modifier = Modifier.size(48.dp)
-            )
-            Spacer(modifier = Modifier.width(24.dp))
-
-            // Nombre del grado.
-            Text(
-                text = grade,
-                style = MaterialTheme.typography.headlineSmall, // Fuente grande para fácil lectura.
-                modifier = Modifier.weight(1f)
-            )
-
-            // Flecha de navegación.
-            Icon(
-                Icons.Default.ChevronRight,
-                contentDescription = "Acceder",
-                tint = MaterialTheme.colorScheme.onSurfaceVariant
-            )
+            Surface(shape = RoundedCornerShape(12.dp), color = Color(0xFFE8F5E9), modifier = Modifier.size(50.dp)) {
+                Box(contentAlignment = Alignment.Center) {
+                    Icon(Icons.Default.School, null, tint = Color(0xFF2E7D32), modifier = Modifier.size(30.dp))
+                }
+            }
+            Spacer(modifier = Modifier.width(20.dp))
+            Text(grade, style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold, modifier = Modifier.weight(1f))
+            Icon(Icons.Default.ChevronRight, null, tint = Color.LightGray)
         }
     }
 }

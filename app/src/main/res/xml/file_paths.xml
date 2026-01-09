@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<paths>
+    <!-- PMV iii) FILESTREAM: Define la ruta segura para compartir archivos. -->
+    <!-- Mapea el subdirectorio 'resources/' dentro del almacenamiento interno (filesDir) de la app. -->
+    <!-- Esto permite que el FileManager guarde PDFs ahí y el FileProvider los comparta con lectores externos. -->
+    <files-path name="my_resources" path="resources/" />
+</paths>

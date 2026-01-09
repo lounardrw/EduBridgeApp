@@ -9,45 +9,28 @@ import androidx.compose.material.icons.filled.ChevronRight
 import androidx.compose.material.icons.filled.Quiz
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
+import androidx.lifecycle.viewmodel.compose.viewModel
+import com.example.edubridge.ui.QuizViewModel
+import com.example.edubridge.ui.QuizModuleUI
+import androidx.compose.ui.text.font.FontWeight
 
-// ====================================================================
-// DATOS SIMULADOS (MOCK DATA)
-// Estos datos simulan los quizzes que deben ser visibles para el alumno.
-// ====================================================================
-
-data class QuizModule(
-    val id: Int,
-    val name: String,
-    val description: String,
-    val gradeLevel: String,
-    val questions: Int
-)
-
-val mockQuizzes = listOf(
-    QuizModule(1, "Álgebra Básica (Publicado)", "Ecuaciones de primer grado y polinomios.", "1° Secundaria", 15),
-    QuizModule(2, "Introducción a la IA", "Conceptos básicos de Machine Learning.", "1° Secundaria", 10),
-    QuizModule(3, "Física Clásica", "Leyes de Newton y cinemática.", "2° Secundaria", 20),
-    QuizModule(4, "Geometría Analítica", "Cónicas y vectores.", "3° Secundaria", 18),
-    QuizModule(5, "Programación con Python", "Fundamentos y estructuras de control.", "3° Secundaria", 12)
-)
-
-// ====================================================================
-// COMPOSABLE PRINCIPAL
-// ====================================================================
-
-/**
- * Pantalla de selección de cuestionarios/módulos para un grado específico.
- * Muestra una lista de Quizzes disponibles para el alumno.
- * @param grade El grado seleccionado desde AulasScreen.
- */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun QuizSelectionScreen(grade: String, modifier: Modifier = Modifier) {
-    // Filtra los quizzes para mostrar solo los de este grado.
-    val quizzesForGrade = mockQuizzes.filter { it.gradeLevel == grade }
+fun QuizSelectionScreen(
+    grade: String,
+    onModuleSelected: (Int) -> Unit, // Callback para navegar al detalle
+    viewModel: QuizViewModel = viewModel(),
+    modifier: Modifier = Modifier
+) {
+    val allQuizzes by viewModel.quizzes.collectAsState()
+
+    // Filtra los quizzes desde Room
+    val quizzesForGrade = allQuizzes.filter { it.grade == grade && it.status == "Published" } // Solo publicados
 
     Scaffold(
         topBar = {
@@ -69,32 +52,29 @@ fun QuizSelectionScreen(grade: String, modifier: Modifier = Modifier) {
                     verticalArrangement = Arrangement.spacedBy(12.dp),
                     modifier = Modifier.fillMaxWidth()
                 ) {
-                    items(quizzesForGrade) { module ->
-                        QuizModuleCard(module = module)
+                    items(quizzesForGrade, key = { it.id }) { module ->
+                        // ACCIÓN: Navegar a la pantalla de detalle, pasando el ID
+                        QuizModuleCard(module = module, onClick = {
+                            onModuleSelected(module.id)
+                        })
                     }
                 }
             } else {
                 Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                    Text("No hay cuestionarios disponibles para $grade.", style = MaterialTheme.typography.titleMedium)
+                    Text("No hay módulos ni cuestionarios disponibles para $grade.", style = MaterialTheme.typography.titleMedium)
                 }
             }
         }
     }
 }
 
-// ====================================================================
-// COMPOSABLES AUXILIARES
-// ====================================================================
-
-/**
- * Tarjeta que muestra la información de un módulo de Quiz.
- */
+//Tarjeta que muestra la información de un módulo/tema para el alumno.
 @Composable
-fun QuizModuleCard(module: QuizModule) {
+fun QuizModuleCard(module: QuizModuleUI, onClick: () -> Unit) {
     Card(
         modifier = Modifier
             .fillMaxWidth()
-            .clickable(onClick = { /* TODO: Navegar a la pantalla de inicio de Quiz */ }),
+            .clickable(onClick = onClick),
         elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
     ) {
         Row(
@@ -110,13 +90,23 @@ fun QuizModuleCard(module: QuizModule) {
             )
             Spacer(modifier = Modifier.width(16.dp))
             Column(modifier = Modifier.weight(1f)) {
-                Text(module.name, style = MaterialTheme.typography.titleMedium)
-                Text(module.description, style = MaterialTheme.typography.bodySmall)
-                Text("${module.questions} Preguntas", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                // Título del Módulo
+                Text(module.title, style = MaterialTheme.typography.titleMedium)
+
+                // Usamos module.description (propiedad que ahora existe en QuizModuleUI)
+                Text(module.description, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant, maxLines = 1)
+
+                Spacer(Modifier.height(4.dp))
+                Text(
+                    "Ver detalles y cuestionario",
+                    style = MaterialTheme.typography.bodySmall,
+                    fontWeight = FontWeight.SemiBold,
+                    color = MaterialTheme.colorScheme.primary
+                )
             }
             Icon(
                 Icons.Default.ChevronRight,
-                contentDescription = "Iniciar",
+                contentDescription = "Ver Detalles",
                 tint = MaterialTheme.colorScheme.onSurfaceVariant
             )
         }

@@ -1,227 +1,236 @@
 package com.example.edubridge.ui.teacher
 
-import androidx.compose.foundation.clickable
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Delete
-import androidx.compose.material.icons.filled.Edit
-import androidx.compose.material.icons.filled.Save
+import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
+import androidx.lifecycle.viewmodel.compose.viewModel
+import com.example.edubridge.ui.QuizViewModel
+import com.example.edubridge.ui.QuizModuleUI
 
-// ====================================================================
-// DATOS SIMULADOS (MOCK DATA) Y ESTADO DEL CRUD
-// ====================================================================
-
-data class EditableQuiz(
-    val id: Int,
-    val title: String,
-    val grade: String,
-    val status: String // "Draft" (Borrador) o "Published" (Publicado)
-)
-
-val initialQuizzes = listOf(
-    EditableQuiz(101, "Test de Cinemática", "2° Secundaria", "Published"),
-    EditableQuiz(102, "Ecuaciones Cuadráticas", "3° Secundaria", "Draft"),
-    EditableQuiz(103, "Conceptos de Redes", "1° Secundaria", "Published")
-)
-
-// ====================================================================
-// COMPOSABLE PRINCIPAL
-// ====================================================================
-
-/**
- * Pantalla de Gestión de Cuestionarios (Luis).
- * Permite al profesor crear nuevos Quizzes y administrarlos (CRUD simulado).
- */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun ManageQuizzesScreen(modifier: Modifier = Modifier) {
-    // Estado mutable para la lista de quizzes (simula la BD)
-    var quizzes by remember { mutableStateOf(initialQuizzes) }
-    var newQuizTitle by remember { mutableStateOf("") }
-    var newQuizGrade by remember { mutableStateOf("1° Secundaria") }
+fun ManageQuizzesScreen(viewModel: QuizViewModel = viewModel()) {
+    val quizzes by viewModel.filteredQuizzes.collectAsState()
+    val searchQuery by viewModel.searchQuery.collectAsState()
+
+    // Estados para el formulario de edición/creación
+    var editingQuizId by remember { mutableStateOf<Int?>(null) }
+    var title by remember { mutableStateOf("") }
+    var description by remember { mutableStateOf("") }
+    var grade by remember { mutableStateOf("1° Secundaria") }
+    var url by remember { mutableStateOf("") }
 
     Scaffold(
-        topBar = { TopAppBar(title = { Text("Gestión de Cuestionarios") }) }
-    ) { innerPadding ->
-        Column(
-            modifier = modifier
-                .padding(innerPadding)
-                .fillMaxSize()
-                .padding(16.dp),
-            horizontalAlignment = Alignment.CenterHorizontally
-        ) {
-            // 1. Formulario de Creación
-            QuizCreationForm(
-                title = newQuizTitle,
-                onTitleChange = { newQuizTitle = it },
-                selectedGrade = newQuizGrade,
-                onGradeChange = { newQuizGrade = it },
-                onSave = {
-                    // Lógica para añadir un nuevo quiz (simulado)
-                    val newId = quizzes.maxOfOrNull { it.id }?.plus(1) ?: 1
-                    val newQuiz = EditableQuiz(newId, newQuizTitle, newQuizGrade, "Draft")
-                    quizzes = quizzes + newQuiz
-                    newQuizTitle = "" // Limpiar formulario
-                }
+        topBar = {
+            CenterAlignedTopAppBar(
+                title = { Text("GESTIÓN DE CUESTIONARIOS", fontWeight = FontWeight.Black) },
+                colors = TopAppBarDefaults.centerAlignedTopAppBarColors(containerColor = Color.White)
             )
-
-            Spacer(Modifier.height(24.dp))
-            Text(
-                "Cuestionarios Existentes (${quizzes.size})",
-                style = MaterialTheme.typography.titleMedium,
-                modifier = Modifier.align(Alignment.Start)
-            )
-            Spacer(Modifier.height(8.dp))
-
-            // 2. Lista de Quizzes Existentes
-            LazyColumn(
-                verticalArrangement = Arrangement.spacedBy(12.dp),
-                modifier = Modifier.weight(1f)
-            ) {
-                items(quizzes) { quiz ->
-                    EditableQuizCard(
-                        quiz = quiz,
-                        onDelete = {
-                            quizzes = quizzes.filter { it.id != quiz.id } // Eliminar (simulado)
-                        },
-                        onEdit = {
-                            // Simulación: Cambiar el estado a publicado/borrador
-                            quizzes = quizzes.map {
-                                if (it.id == quiz.id) {
-                                    it.copy(status = if (it.status == "Draft") "Published" else "Draft")
-                                } else {
-                                    it
-                                }
-                            }
-                        }
-                    )
-                }
-            }
         }
-    }
-}
-
-// ====================================================================
-// COMPOSABLES AUXILIARES
-// ====================================================================
-
-/**
- * Formulario para crear o editar un Quiz.
- */
-@OptIn(ExperimentalMaterial3Api::class) // <--- ¡Anotación necesaria agregada aquí!
-@Composable
-fun QuizCreationForm(
-    title: String,
-    onTitleChange: (String) -> Unit,
-    selectedGrade: String,
-    onGradeChange: (String) -> Unit,
-    onSave: () -> Unit
-) {
-    Card(
-        modifier = Modifier.fillMaxWidth().padding(vertical = 8.dp),
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.primaryContainer)
-    ) {
-        Column(modifier = Modifier.padding(16.dp)) {
-            Text("Crear Nuevo Cuestionario", style = MaterialTheme.typography.titleLarge)
-            Spacer(Modifier.height(8.dp))
-
-            OutlinedTextField(
-                value = title,
-                onValueChange = onTitleChange,
-                label = { Text("Título del Cuestionario") },
-                modifier = Modifier.fillMaxWidth()
+    ) { padding ->
+        Column(
+            modifier = Modifier
+                .padding(padding)
+                .fillMaxSize()
+                .background(Color(0xFFF8F9FA))
+                .padding(16.dp)
+        ) {
+            // Título Homogéneo
+            Text(
+                text = "Administración de Módulos",
+                style = MaterialTheme.typography.headlineMedium,
+                fontWeight = FontWeight.Black
+            )
+            Text(
+                text = "Crea o edita el contenido de tus exámenes",
+                style = MaterialTheme.typography.bodyMedium,
+                color = Color.Gray
             )
 
-            Spacer(Modifier.height(8.dp))
+            Spacer(Modifier.height(16.dp))
 
-            // Selector de Grado (DropDown Menu)
-            var expanded by remember { mutableStateOf(false) }
-            ExposedDropdownMenuBox(
-                expanded = expanded,
-                onExpandedChange = { expanded = !expanded },
-                modifier = Modifier.fillMaxWidth()
-            ) {
-                OutlinedTextField(
-                    value = selectedGrade,
-                    onValueChange = {},
-                    readOnly = true,
-                    label = { Text("Asignar a Grado") },
-                    trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = expanded) },
-                    // La propiedad .menuAnchor() requiere ExperimentalMaterial3Api
-                    modifier = Modifier.menuAnchor().fillMaxWidth()
+            // Punto 4: Buscador para organizar datos
+            OutlinedTextField(
+                value = searchQuery,
+                onValueChange = { viewModel.onSearchQueryChanged(it) },
+                modifier = Modifier.fillMaxWidth(),
+                placeholder = { Text("Buscar por nombre de examen...") },
+                leadingIcon = { Icon(Icons.Default.Search, null, tint = Color(0xFF2E7D32)) },
+                shape = RoundedCornerShape(16.dp),
+                colors = OutlinedTextFieldDefaults.colors(
+                    focusedContainerColor = Color.White,
+                    unfocusedContainerColor = Color.White,
+                    focusedBorderColor = Color(0xFF2E7D32)
                 )
-                ExposedDropdownMenu(
-                    expanded = expanded,
-                    onDismissRequest = { expanded = false }
-                ) {
-                    listOf("1° Secundaria", "2° Secundaria", "3° Secundaria").forEach { grade ->
-                        DropdownMenuItem(
-                            text = { Text(grade) },
-                            onClick = {
-                                onGradeChange(grade)
-                                expanded = false
+            )
+
+            Spacer(Modifier.height(16.dp))
+
+            // Formulario de Entrada (Punto 1 y 3)
+            Card(
+                modifier = Modifier.fillMaxWidth(),
+                shape = RoundedCornerShape(24.dp),
+                colors = CardDefaults.cardColors(containerColor = Color(0xFFE8F5E9)),
+                elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
+            ) {
+                Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                    Text(
+                        text = if (editingQuizId == null) "Nuevo Cuestionario" else "Editando Contenido",
+                        fontWeight = FontWeight.Bold,
+                        color = Color(0xFF2E7D32)
+                    )
+
+                    OutlinedTextField(
+                        value = title,
+                        onValueChange = { title = it },
+                        label = { Text("Título del Examen") },
+                        modifier = Modifier.fillMaxWidth(),
+                        shape = RoundedCornerShape(12.dp)
+                    )
+
+                    OutlinedTextField(
+                        value = description,
+                        onValueChange = { description = it },
+                        label = { Text("Descripción corta") },
+                        modifier = Modifier.fillMaxWidth(),
+                        shape = RoundedCornerShape(12.dp)
+                    )
+
+                    OutlinedTextField(
+                        value = url,
+                        onValueChange = { url = it },
+                        label = { Text("Enlace de Google Forms") },
+                        modifier = Modifier.fillMaxWidth(),
+                        shape = RoundedCornerShape(12.dp)
+                    )
+
+                    // Punto 3: Selector de Grados
+                    GradeSelector(selectedGrade = grade, onGradeSelected = { grade = it })
+
+                    Button(
+                        onClick = {
+                            if (editingQuizId == null) {
+                                viewModel.insertQuiz(title, description, grade, url)
+                            } else {
+                                viewModel.updateQuizContent(editingQuizId!!, title, description, grade, url)
+                                editingQuizId = null
                             }
-                        )
+                            // Resetear campos
+                            title = ""; description = ""; url = ""; grade = "1° Secundaria"
+                        },
+                        modifier = Modifier.fillMaxWidth().height(50.dp),
+                        shape = RoundedCornerShape(12.dp),
+                        colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF2E7D32))
+                    ) {
+                        Text(if (editingQuizId == null) "GUARDAR CUESTIONARIO" else "ACTUALIZAR DATOS", fontWeight = FontWeight.Bold)
+                    }
+
+                    if (editingQuizId != null) {
+                        TextButton(
+                            onClick = { editingQuizId = null; title = ""; description = ""; url = ""; grade = "1° Secundaria" },
+                            modifier = Modifier.align(Alignment.CenterHorizontally)
+                        ) {
+                            Text("Cancelar edición", color = Color.Red)
+                        }
                     }
                 }
             }
 
-            Spacer(Modifier.height(16.dp))
+            Spacer(Modifier.height(24.dp))
 
-            Button(
-                onClick = onSave,
-                enabled = title.isNotBlank(),
-                modifier = Modifier.fillMaxWidth()
-            ) {
-                Text("Guardar Borrador")
+            // Lista de Cuestionarios
+            LazyColumn(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                items(quizzes, key = { it.id }) { quiz ->
+                    Card(
+                        modifier = Modifier.fillMaxWidth(),
+                        shape = RoundedCornerShape(20.dp),
+                        colors = CardDefaults.cardColors(containerColor = Color.White),
+                        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
+                    ) {
+                        Row(modifier = Modifier.padding(16.dp), verticalAlignment = Alignment.CenterVertically) {
+                            Column(modifier = Modifier.weight(1f)) {
+                                Text(quiz.title, fontWeight = FontWeight.Bold, fontSize = 16.sp)
+                                Text(quiz.grade, style = MaterialTheme.typography.bodySmall, color = Color.Gray)
+                                Text(
+                                    text = if(quiz.status == "Published") "Visible para alumnos" else "Borrador (Oculto)",
+                                    color = if(quiz.status == "Published") Color(0xFF2E7D32) else Color.Red,
+                                    fontSize = 11.sp,
+                                    fontWeight = FontWeight.Bold
+                                )
+                            }
+
+                            // Botón Editar Contenido
+                            IconButton(onClick = {
+                                editingQuizId = quiz.id
+                                title = quiz.title
+                                description = quiz.description
+                                url = quiz.formUrl
+                                grade = quiz.grade
+                            }) {
+                                Icon(Icons.Default.Edit, "Editar", tint = Color(0xFF2E7D32))
+                            }
+
+                            // Botón Visibilidad
+                            IconButton(onClick = { viewModel.toggleStatus(quiz.id, quiz.status) }) {
+                                Icon(
+                                    imageVector = if(quiz.status == "Published") Icons.Default.Visibility else Icons.Default.VisibilityOff,
+                                    contentDescription = "Estado",
+                                    tint = Color.Gray
+                                )
+                            }
+
+                            // Botón Eliminar
+                            IconButton(onClick = { viewModel.deleteQuiz(quiz.id) }) {
+                                Icon(Icons.Default.Delete, "Eliminar", tint = Color.Red)
+                            }
+                        }
+                    }
+                }
             }
         }
     }
 }
 
-/**
- * Tarjeta para mostrar un Quiz existente con opciones de CRUD.
- */
 @Composable
-fun EditableQuizCard(quiz: EditableQuiz, onDelete: () -> Unit, onEdit: () -> Unit) {
-    Card(
-        modifier = Modifier.fillMaxWidth(),
-        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
-    ) {
-        Row(
-            modifier = Modifier.padding(16.dp),
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.SpaceBetween
+fun GradeSelector(selectedGrade: String, onGradeSelected: (String) -> Unit) {
+    val grades = listOf("1° Secundaria", "2° Secundaria", "3° Secundaria")
+    var expanded by remember { mutableStateOf(false) }
+
+    Box(modifier = Modifier.fillMaxWidth()) {
+        OutlinedButton(
+            onClick = { expanded = true },
+            modifier = Modifier.fillMaxWidth(),
+            shape = RoundedCornerShape(12.dp)
         ) {
-            Column(Modifier.weight(1f)) {
-                Text(quiz.title, style = MaterialTheme.typography.titleMedium)
-                Text("Grado: ${quiz.grade}", style = MaterialTheme.typography.bodySmall)
-                Text("Estado: ${quiz.status}",
-                    style = MaterialTheme.typography.bodySmall,
-                    color = if (quiz.status == "Published") MaterialTheme.colorScheme.secondary else MaterialTheme.colorScheme.error)
-            }
-
-            Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
-                // Botón de Edición (simula publicar/despublicar)
-                IconButton(onClick = onEdit) {
-                    Icon(
-                        if (quiz.status == "Draft") Icons.Default.Save else Icons.Default.Edit,
-                        contentDescription = "Editar/Publicar",
-                        tint = if (quiz.status == "Draft") MaterialTheme.colorScheme.secondary else MaterialTheme.colorScheme.primary
-                    )
-                }
-
-                // Botón de Borrar
-                IconButton(onClick = onDelete) {
-                    Icon(Icons.Default.Delete, contentDescription = "Eliminar", tint = MaterialTheme.colorScheme.error)
-                }
+            Text("Grado Destino: $selectedGrade", color = Color.DarkGray)
+            Spacer(Modifier.weight(1f))
+            Icon(Icons.Default.ArrowDropDown, null, tint = Color.Gray)
+        }
+        DropdownMenu(
+            expanded = expanded,
+            onDismissRequest = { expanded = false },
+            modifier = Modifier.fillMaxWidth(0.8f)
+        ) {
+            grades.forEach { grade ->
+                DropdownMenuItem(
+                    text = { Text(grade) },
+                    onClick = {
+                        onGradeSelected(grade)
+                        expanded = false
+                    }
+                )
             }
         }
     }
